@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="NEON BINGO CRASHER — 電撃パチンコ・ビンゴ。釘カスタム×玉ビルド×OVERDRIVE連鎖のサイバーアーケード・ローグライク！"
+    />
+    <title>NEON BINGO CRASHER — 電撃パチンコ・ビンゴ</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpolygon points='32,3 57,17 57,47 32,61 7,47 7,17' fill='%23070a12' stroke='%2300f0ff' stroke-width='4'/%3E%3Cpolygon points='35,14 20,34 31,34 27,50 44,29 33,29' fill='%23ffb800'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=M+PLUS+1p:wght@500;700;800&family=Orbitron:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell" data-phase="TITLE">
+      <!-- ==================== TITLE SCREEN ==================== -->
+      <section id="screen-title" class="title-screen" aria-label="タイトル画面">
+        <video
+          id="title-attract-video"
+          class="title-bg-video"
+          src="./assets/video/title_attract.mp4"
+          poster="./assets/images/title_keyart.webp"
+          autoplay
+          loop
+          muted
+          playsinline
+        ></video>
+        <div class="title-vignette"></div>
+
+        <div class="title-top-bar">
+          <div class="title-cabinet-tag">OVERDRIVE EDITION</div>
+          <div class="audio-toggles-cluster">
+            <button
+              id="btn-toggle-bgm-title"
+              class="icon-toggle-btn is-on"
+              type="button"
+              aria-label="BGM切替"
+              title="BGM ON/OFF"
+            >
+              <span class="icon-slot" data-icon="bgm"></span>
+              <span class="toggle-lbl">BGM</span>
+            </button>
+            <button
+              id="btn-toggle-se-title"
+              class="icon-toggle-btn is-on"
+              type="button"
+              aria-label="効果音切替"
+              title="SE ON/OFF"
+            >
+              <span class="icon-slot" data-icon="se"></span>
+              <span class="toggle-lbl">SE</span>
+            </button>
+          </div>
+        </div>
+
+        <main class="title-center-stage">
+          <div class="title-brand-lockup">
+            <div id="title-brand-emblem" class="title-emblem"></div>
+            <div class="title-text-group">
+              <p class="title-jp-kicker">電撃パチンコ・ビンゴ</p>
+              <h1 class="title-main-heading">NEON BINGO CRASHER</h1>
+            </div>
+          </div>
+
+          <div class="title-loop-strip" aria-label="ゲーム概要">
+            <div class="loop-step">
+              <span class="loop-icon" data-icon="aimTarget"></span>
+              <span class="loop-label">1. 狙って撃つ</span>
+            </div>
+            <span class="loop-arrow" data-icon="chevronRight"></span>
+            <div class="loop-step">
+              <span class="loop-icon" data-icon="bingoGrid"></span>
+              <span class="loop-label">2. ポケットでBINGO開放</span>
+            </div>
+            <span class="loop-arrow" data-icon="chevronRight"></span>
+            <div class="loop-step">
+              <span class="loop-icon" data-icon="overdriveCore"></span>
+              <span class="loop-label">3. 改造×OVERDRIVEで超インフレ</span>
+            </div>
+          </div>
+
+          <div class="title-cta-stack">
+            <button id="btn-start-standard" class="cta-primary-btn" type="button">
+              <span class="cta-icon" data-icon="play"></span>
+              <span class="cta-text">GAME START</span>
+              <span class="cta-sub-tag">全8ステージ</span>
+            </button>
+            <button id="btn-start-endless" class="cta-secondary-btn" type="button">
+              <span class="cta-icon" data-icon="bolt"></span>
+              <span class="cta-text">ENDLESS MODE</span>
+              <span class="cta-sub-tag">無限インフレ</span>
+            </button>
+          </div>
+
+          <div class="title-highscore-pill">
+            <span class="hs-icon" data-icon="crown"></span>
+            <span class="hs-label">HIGH SCORE</span>
+            <span id="title-high-score" class="hs-value">0</span>
+          </div>
+        </main>
+      </section>
+
+      <!-- ==================== CABINET GAMEPLAY SHELL ==================== -->
+      <div id="cabinet-shell" class="cabinet-shell is-hidden">
+        <!-- Mobile Compact Top Arcade Marquee (< 960px) -->
+        <header id="mobile-marquee" class="mobile-marquee">
+          <div class="mm-top-row">
+            <div class="mm-status-left">
+              <span id="mm-stage-badge" class="mm-stage-badge">STG 1/8</span>
+              <div class="mm-medal-badge">
+                <span class="medal-icon-inline" data-icon="medal"></span>
+                <span id="mm-medals-val">¥0</span>
+              </div>
+            </div>
+            <div class="mm-right">
+              <button
+                id="btn-mobile-relics"
+                class="mm-relics-btn"
+                type="button"
+                aria-label="レリック確認"
+              >
+                <span>REL</span>
+                <strong id="mm-relics-count">0/6</strong>
+              </button>
+              <button
+                id="btn-toggle-bgm-mobile"
+                class="icon-toggle-btn compact is-on"
+                type="button"
+                aria-label="BGM切替"
+              >
+                <span class="icon-slot" data-icon="bgm"></span>
+              </button>
+              <button
+                id="btn-toggle-se-mobile"
+                class="icon-toggle-btn compact is-on"
+                type="button"
+                aria-label="SE切替"
+              >
+                <span class="icon-slot" data-icon="se"></span>
+              </button>
+              <button
+                id="btn-mobile-title"
+                class="mm-home-btn"
+                type="button"
+                aria-label="タイトルへ戻る"
+              >
+                TITLE
+              </button>
+            </div>
+          </div>
+
+          <div class="mm-score-row-bar">
+            <div class="mm-score-readout">
+              <span id="mm-score-val" class="mm-score-val">0</span>
+              <span class="mm-slash">/</span>
+              <span id="mm-target-val" class="mm-target-val">2,400</span>
+            </div>
+            <div class="mm-progress-track">
+              <div id="mm-progress-fill" class="mm-progress-fill"></div>
+            </div>
+            <div class="mm-row2-pills">
+              <span id="mm-mult-badge" class="mm-mult-badge">x1</span>
+              <span id="mm-card-level" class="mm-lv-badge">LV.1</span>
+              <span id="mm-fever-pill" class="fever-pill is-hidden">FEVER</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Mobile Relic Drawer (toggleable) -->
+        <div id="mobile-relic-popover" class="mobile-relic-popover is-hidden">
+          <div class="mrp-header">
+            <span>ACTIVE RELICS</span>
+            <button id="btn-close-mobile-relics" class="mrp-close" type="button">CLOSE</button>
+          </div>
+          <div id="mobile-relic-list" class="mrp-list"></div>
+        </div>
+
+        <!-- Mobile Next Ball & Deck Inspector Popover -->
+        <div id="mobile-ball-popover" class="mobile-relic-popover is-hidden">
+          <div class="mrp-header">
+            <span>NEXT BALL &amp; MAGAZINE</span>
+            <button id="btn-close-mobile-ball" class="mrp-close" type="button">CLOSE</button>
+          </div>
+          <div id="mobile-ball-detail" class="mrp-list"></div>
+        </div>
+
+        <!-- Desktop Left Cabinet Panel (>= 960px) -->
+        <aside class="cabinet-left-panel" aria-label="スコアとレリック状況">
+          <div class="panel-top-row">
+            <div id="hud-stage-badge" class="stage-badge">STAGE 1 / 8</div>
+            <div class="audio-toggles-cluster">
+              <button
+                id="btn-toggle-bgm"
+                class="icon-toggle-btn is-on"
+                type="button"
+                aria-label="BGM切替"
+                title="BGM ON/OFF"
+              >
+                <span class="icon-slot" data-icon="bgm"></span>
+                <span class="toggle-lbl">BGM</span>
+              </button>
+              <button
+                id="btn-toggle-se"
+                class="icon-toggle-btn is-on"
+                type="button"
+                aria-label="効果音切替"
+                title="SE ON/OFF"
+              >
+                <span class="icon-slot" data-icon="se"></span>
+                <span class="toggle-lbl">SE</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="score-cabinet-box">
+            <div class="score-box-header">
+              <span class="cabinet-kicker">SCORE</span>
+              <span id="hud-fever-pill" class="fever-pill is-hidden">FEVER ACTIVE</span>
+            </div>
+            <div id="hud-stage-score" class="giant-score-readout">0</div>
+            <div class="target-bar-wrap">
+              <div class="target-bar-labels">
+                <span>TARGET</span>
+                <strong id="hud-target-score">1,200</strong>
+              </div>
+              <div class="score-progress-track">
+                <div id="hud-score-progress" class="score-progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="mult-card-row">
+              <div class="mult-display-box">
+                <span class="cabinet-kicker">STAGE MULT</span>
+                <div id="hud-stage-mult" class="giant-mult-readout">x1</div>
+              </div>
+              <div class="cardlv-display-box">
+                <span class="cabinet-kicker">CARD LEVEL</span>
+                <div id="hud-card-level" class="card-lv-readout">LV.1</div>
+              </div>
+            </div>
+
+            <div class="medal-run-row">
+              <div class="medal-readout">
+                <span class="medal-icon-inline" data-icon="medal"></span>
+                <span class="cabinet-kicker">CREDITS</span>
+                <strong id="hud-medals" class="medal-amount">¥0</strong>
+              </div>
+              <div class="run-score-readout">
+                <span class="cabinet-kicker">RUN TOTAL</span>
+                <strong id="hud-run-score">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="relic-rack-box">
+            <div class="rack-header">
+              <span class="cabinet-kicker">ACTIVE RELICS</span>
+              <span id="hud-relic-count" class="rack-count">0 / 6</span>
+            </div>
+            <div id="hud-relic-slots" class="relic-slots-grid"></div>
+            <div id="hud-relic-tooltip" class="relic-tooltip">
+              レリックを購入するとここに装着され、発動時に電撃パルスが走ります。
+            </div>
+          </div>
+
+          <button id="btn-quit-to-title" class="ghost-back-btn" type="button">
+            TITLEへ戻る
+          </button>
+        </aside>
+
+        <!-- Center Playfield Bezel -->
+        <main class="playfield-bezel cabinet-center-stage">
+          <!-- Board Customization Prompt Bar placed cleanly above Canvas Frame -->
+          <div id="board-tune-banner" class="board-tune-banner is-hidden">
+            <div class="btb-info">
+              <span class="btb-badge">盤面釘カスタム</span>
+              <span id="btb-hint" class="btb-hint">光る釘スロットをタップして装着</span>
+            </div>
+            <div class="btb-actions">
+              <button id="btn-board-auto-pins" class="mini-neon-btn emerald" type="button">
+                <span data-icon="autoTune"></span>
+                <span>おまかせ配置</span>
+              </button>
+              <button id="btn-board-back-shop" class="mini-neon-btn cyan" type="button">
+                ショップへ戻る
+              </button>
+            </div>
+          </div>
+
+          <div class="canvas-frame">
+            <canvas
+              id="playfield-canvas"
+              width="540"
+              height="920"
+              aria-label="パチンコ・ビンゴ盤面"
+            ></canvas>
+          </div>
+        </main>
+
+        <!-- Desktop Right Control Deck (>= 960px) -->
+        <aside class="cabinet-right-panel" aria-label="発射ハンドルと持ち玉マガジン">
+          <div class="magazine-box">
+            <div class="rack-header">
+              <span class="cabinet-kicker">BALL MAGAZINE</span>
+              <span id="hud-balls-remaining" class="rack-count">12 LEFT</span>
+            </div>
+            <div class="next-ball-showcase">
+              <div id="hud-next-ball-icon" class="next-ball-icon"></div>
+              <div class="next-ball-meta">
+                <span class="next-lbl">NEXT SHOT</span>
+                <strong id="hud-next-ball-name">クローム球</strong>
+                <span id="hud-next-ball-desc" class="next-desc">標準の超硬クローム球</span>
+              </div>
+            </div>
+            <div id="hud-ball-queue" class="ball-queue-strip"></div>
+          </div>
+
+          <div class="pin-legend-box">
+            <div class="rack-header">
+              <span class="cabinet-kicker">BOARD BUILD</span>
+              <span id="hud-bingo-count" class="rack-count">0 BINGO</span>
+            </div>
+            <div id="hud-pin-summary" class="pin-summary-chips"></div>
+          </div>
+
+          <div class="stroke-controller-box">
+            <div class="rack-header stroke-desktop-header">
+              <span class="cabinet-kicker">STROKE HANDLE</span>
+              <span id="hud-stroke-route" class="route-pill">ぶっ込み 42%</span>
+            </div>
+
+            <button
+              id="btn-mobile-ball-info"
+              class="mcb-ball-pill"
+              type="button"
+              aria-label="次の玉と残り玉内訳を確認"
+            >
+              <span id="mcb-next-icon" class="mcb-next-icon"></span>
+              <span id="mcb-balls-left" class="mcb-balls-left">x12</span>
+            </button>
+
+            <div class="stroke-middle-stack">
+              <div class="stroke-aim-header">
+                <div class="quick-aim-row" role="group" aria-label="狙い打ちプリセット">
+                  <button class="aim-preset-btn" type="button" data-power="0.20">左打ち</button>
+                  <button class="aim-preset-btn" type="button" data-power="0.42">ぶっ込み</button>
+                  <button class="aim-preset-btn" type="button" data-power="0.58">中央</button>
+                  <button class="aim-preset-btn desktop-only-aim" type="button" data-power="0.74">右狙い</button>
+                  <button class="aim-preset-btn" type="button" data-power="0.86">右打ち</button>
+                </div>
+              </div>
+
+              <div class="rotary-deck">
+                <div id="rotary-handle-visual" class="rotary-handle-visual" aria-hidden="true">
+                  <div class="rotary-svg-wrap" data-icon="rotaryHandle"></div>
+                </div>
+                <div class="power-slider-col">
+                  <label class="slider-label" for="slider-power">
+                    <span class="lbl-full">HANDLE POWER</span>
+                    <span id="mcb-route-lbl" class="mcb-route-lbl">ぶっ込み 42%</span>
+                    <strong id="hud-power-pct">42%</strong>
+                  </label>
+                  <input
+                    id="slider-power"
+                    class="arcade-range"
+                    type="range"
+                    min="5"
+                    max="100"
+                    value="42"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="launch-actions-row">
+              <button
+                id="btn-lock-stroke"
+                class="lock-stroke-btn"
+                type="button"
+                aria-pressed="false"
+              >
+                <span class="lock-icon-slot" data-icon="lock"></span>
+                <span class="lbl-full">固定連射 (LOCK)</span>
+                <span class="lbl-short">連射固定</span>
+              </button>
+              <button id="btn-launch" class="launch-main-btn" type="button">
+                <span class="launch-btn-icon" data-icon="bolt"></span>
+                <span class="launch-btn-title">LAUNCH 発射</span>
+                <span class="launch-btn-short">発射</span>
+                <span class="launch-btn-sub">CLICK OR HOLD [SPACE]</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ==================== STAGE CLEAR RECEIPT OVERLAY ==================== -->
+      <section
+        id="overlay-stage-clear"
+        class="modal-overlay is-hidden"
+        aria-label="ステージクリア"
+      >
+        <div class="arcade-modal clear-modal">
+          <div class="modal-kicker emerald">STAGE CLEARED — TARGET CRUSHED</div>
+          <h2 id="clear-heading" class="modal-title">STAGE 1 CLEAR</h2>
+
+          <div class="receipt-grid">
+            <div class="receipt-row">
+              <span>STAGE SCORE</span>
+              <strong id="clear-stage-score" class="cyan">0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>BASE CLEAR REWARD</span>
+              <strong id="clear-base-reward">+¥0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>UNUSED BALLS BONUS (<span id="clear-unused-balls">0</span>)</span>
+              <strong id="clear-ball-bonus">+¥0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>BINGO LINE BONUS</span>
+              <strong id="clear-bingo-bonus">+¥0</strong>
+            </div>
+            <div class="receipt-divider"></div>
+            <div class="receipt-row total">
+              <span>TOTAL CREDITS EARNED</span>
+              <strong id="clear-total-medals" class="gold">+¥0</strong>
+            </div>
+          </div>
+
+          <button id="btn-goto-shop" class="cta-primary-btn full" type="button">
+            <span class="cta-icon" data-icon="chevronRight"></span>
+            <span class="cta-text">強化ショップ＆盤面改造へ進む</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ==================== TUNING PARLOR SHOP & BOARD CUSTOMIZATION ==================== -->
+      <section
+        id="overlay-shop"
+        class="shop-drawer-overlay is-hidden"
+        aria-label="強化ショップと盤面改造"
+      >
+        <div class="shop-panel">
+          <header class="shop-header">
+            <div class="shop-title-group">
+              <span class="modal-kicker gold">TUNING PARLOR — ステージ改造ショップ</span>
+              <h2 id="shop-stage-title" class="shop-heading">STAGE 1 SHOP</h2>
+            </div>
+            <div class="shop-wallet-pill">
+              <span class="medal-icon-inline" data-icon="medal"></span>
+              <strong id="shop-medals">¥0</strong>
+            </div>
+          </header>
+
+          <nav class="shop-tabs" role="tablist">
+            <button
+              id="tab-shop-buy"
+              class="shop-tab-btn is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+            >
+              強化ショップ (購入)
+            </button>
+            <button
+              id="tab-board-tune"
+              class="shop-tab-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+            >
+              盤面釘カスタム (配置)
+              <span id="shop-pending-badge" class="pending-badge is-hidden">0</span>
+            </button>
+          </nav>
+
+          <!-- Tab 1: Purchase Shop Offers -->
+          <div id="shop-view-buy" class="shop-view">
+            <div id="shop-offers-grid" class="shop-offers-grid"></div>
+          </div>
+
+          <!-- Tab 2: Board Pin Customization Inventory -->
+          <div id="shop-view-board" class="shop-view is-hidden">
+            <div class="board-brush-panel">
+              <p class="bbp-instruction">
+                装着したい特殊釘を選び、盤面の<strong>光るスロット</strong>をクリック！装着済みの特殊釘をタップすると回収して別の位置へ付け替えられます。
+              </p>
+              <div id="shop-pin-inventory" class="pin-inventory-list"></div>
+              <div class="bbp-actions-row">
+                <button id="btn-auto-pins" class="mini-neon-btn emerald" type="button">
+                  <span data-icon="autoTune"></span>
+                  <span>おまかせ最適配置</span>
+                </button>
+                <button id="btn-focus-canvas-pins" class="mini-neon-btn cyan" type="button">
+                  盤面を大きく見る
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permanently visible non-scrolling Owned Relics strip right above Shop Footer -->
+          <div class="shop-relics-strip">
+            <div class="srs-title">所持レリック（タップで売却 +50%）</div>
+            <div id="shop-owned-relics" class="srs-list"></div>
+          </div>
+
+          <div id="shop-autoplace-note" class="autoplace-note is-hidden">
+            未配置ピンは自動で最適スロットに装着されます
+          </div>
+
+          <footer class="shop-footer">
+            <button id="btn-reroll-shop" class="shop-reroll-btn" type="button">
+              <span data-icon="reroll"></span>
+              <span>品揃え入替</span>
+              <strong id="shop-reroll-cost">¥15</strong>
+            </button>
+            <button id="btn-next-stage" class="cta-primary-btn shop-next-btn" type="button">
+              <span class="cta-icon" data-icon="play"></span>
+              <span class="cta-text">NEXT STAGE 開始</span>
+            </button>
+          </footer>
+        </div>
+      </section>
+
+      <!-- ==================== VICTORY / GAME OVER MODAL ==================== -->
+      <section
+        id="overlay-end"
+        class="modal-overlay is-hidden"
+        aria-label="リザルト画面"
+      >
+        <div class="arcade-modal end-modal">
+          <div id="end-kicker" class="modal-kicker gold">MISSION COMPLETE</div>
+          <h2 id="end-title" class="modal-title">CABINET CONQUERED</h2>
+
+          <div id="end-new-record" class="new-record-banner is-hidden">
+            <span data-icon="crown"></span>
+            <span>NEW HIGH SCORE RECORD</span>
+          </div>
+
+          <div class="receipt-grid">
+            <div class="receipt-row">
+              <span>FINAL RUN SCORE</span>
+              <strong id="end-run-score" class="gold">0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>HIGH SCORE</span>
+              <strong id="end-high-score" class="cyan">0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>MAX STAGE MULT</span>
+              <strong id="end-max-mult">x1</strong>
+            </div>
+            <div class="receipt-row">
+              <span>BEST SINGLE SHOT</span>
+              <strong id="end-best-shot">0</strong>
+            </div>
+            <div class="receipt-row">
+              <span>TOTAL BINGOS / FULL CARDS</span>
+              <strong id="end-bingos">0 / 0</strong>
+            </div>
+          </div>
+
+          <div class="end-relics-preview">
+            <div class="erp-label">FINAL RELIC BUILD</div>
+            <div id="end-relics-list" class="erp-icons"></div>
+          </div>
+
+          <div class="end-actions-stack">
+            <button id="btn-continue-endless" class="cta-primary-btn full end-victory-cta is-hidden" type="button">
+              <span class="cta-icon" data-icon="bolt"></span>
+              <span class="cta-text">ENDLESS MODE へ突入</span>
+            </button>
+            <button id="btn-retry-run" class="cta-primary-btn full" type="button">
+              <span class="cta-icon" data-icon="play"></span>
+              <span class="cta-text">新しく始める</span>
+            </button>
+            <button id="btn-back-title" class="cta-ghost-btn full" type="button">
+              タイトルへ戻る
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
