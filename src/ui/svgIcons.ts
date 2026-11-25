@@ -32,53 +32,55 @@ export function getPinIconSvg(kind: PinKind, size = 24): string {
       return svgWrap(
         size,
         '0 0 32 32',
-        `<circle cx="16" cy="16" r="11" stroke="#00f0ff" stroke-width="2.2" fill="#0b1526"/>
-         <circle cx="16" cy="16" r="5" fill="#e2f8ff"/>
-         <path d="M16 3v4M16 25v4M3 16h4M25 16h4" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round"/>`
+        `<circle cx="17" cy="17.5" r="10.5" fill="rgba(0,0,0,0.45)"/>
+         <circle cx="16" cy="16" r="10.5" stroke="#78350f" stroke-width="2.2" fill="#e5a93b"/>
+         <circle cx="14.5" cy="14.5" r="7.2" fill="#f5c75d"/>
+         <circle cx="12.5" cy="12" r="3.6" fill="#fffbeb"/>`
       );
     case 'SPLITTER':
       return svgWrap(
         size,
         '0 0 32 32',
-        `<polygon points="16,4 28,25 4,25" fill="#07281e" stroke="#00ff88" stroke-width="2.2" stroke-linejoin="round"/>
-         <circle cx="16" cy="10" r="2.3" fill="#00ff88"/>
-         <circle cx="10.5" cy="21.5" r="2.3" fill="#00ff88"/>
-         <circle cx="21.5" cy="21.5" r="2.3" fill="#00ff88"/>
-         <path d="M16 12.5L11.5 20M16 12.5L20.5 20M12 21.5h8" stroke="#86efac" stroke-width="1.3"/>`
+        `<polygon points="16,4 28,25 4,25" fill="#065f46" stroke="#6ee7b7" stroke-width="2.2" stroke-linejoin="round"/>
+         <circle cx="16" cy="10" r="2.3" fill="#34d399"/>
+         <circle cx="10.5" cy="21.5" r="2.3" fill="#34d399"/>
+         <circle cx="21.5" cy="21.5" r="2.3" fill="#34d399"/>
+         <circle cx="16" cy="17" r="3.2" fill="#fde68a" stroke="#78350f" stroke-width="1.3"/>`
       );
     case 'BUMPER':
       return svgWrap(
         size,
         '0 0 32 32',
-        `<polygon points="11,3 21,3 29,11 29,21 21,29 11,29 3,21 3,11" fill="#291a04" stroke="#ffb800" stroke-width="2.2"/>
-         <circle cx="16" cy="16" r="7.5" stroke="#ffd86b" stroke-width="1.8" fill="#422806"/>
-         <path d="M16 10.5l1.6 3.9 4.1 1.6-4.1 1.6-1.6 3.9-1.6-3.9-4.1-1.6 4.1-1.6z" fill="#ffb800"/>`
+        `<circle cx="16" cy="16" r="12" fill="#991b1b" stroke="#f5b942" stroke-width="2.8"/>
+         <circle cx="16" cy="16" r="7.5" stroke="#fef3c7" stroke-width="1.6" fill="#b91c1c"/>
+         <circle cx="16" cy="16" r="4.2" fill="#fde047"/>
+         <circle cx="14.5" cy="14.5" r="1.6" fill="#ffffff"/>`
       );
     case 'SPINNER':
       return svgWrap(
         size,
         '0 0 32 32',
-        `<circle cx="16" cy="16" r="12" stroke="#ff2a5f" stroke-width="1.4" stroke-dasharray="4 3"/>
-         <path d="M16 4l4 10h-8zM28 16l-10 4v-8zM16 28l-4-10h8zM4 16l10-4v8z" fill="#ff2a5f"/>
-         <circle cx="16" cy="16" r="3.4" fill="#f1f5f9" stroke="#ff2a5f" stroke-width="1.4"/>`
+        `<circle cx="16" cy="16" r="12" stroke="#fda4af" stroke-width="1.2" stroke-dasharray="4 3"/>
+         <path d="M16 4l4 10h-8zM28 16l-10 4v-8zM16 28l-4-10h8zM4 16l10-4v8z" fill="#f43f5e"/>
+         <circle cx="16" cy="16" r="3.8" fill="#fde68a" stroke="#78350f" stroke-width="1.5"/>`
       );
     case 'BOMB_PIN':
       return svgWrap(
         size,
         '0 0 32 32',
-        `<circle cx="16" cy="16" r="10.5" fill="#2b0c09" stroke="#ff6b00" stroke-width="2.2"/>
-         <path d="M16 3v5M16 24v5M3 16h5M24 16h5M7 7l3.5 3.5M21.5 21.5L25 25M25 7l-3.5 3.5M10.5 21.5L7 25" stroke="#ff2a5f" stroke-width="1.9" stroke-linecap="round"/>
-         <circle cx="16" cy="16" r="4.5" fill="#ff6b00"/>
-         <circle cx="16" cy="16" r="2" fill="#fff7ed"/>`
+        `<circle cx="16" cy="16" r="10.5" fill="#450a0a" stroke="#f97316" stroke-width="2.4"/>
+         <path d="M16 3v5M16 24v5M3 16h5M24 16h5M7 7l3.5 3.5M21.5 21.5L25 25M25 7l-3.5 3.5M10.5 21.5L7 25" stroke="#fde047" stroke-width="1.8" stroke-linecap="round"/>
+         <circle cx="16" cy="16" r="4.5" fill="#ff2a5f"/>
+         <circle cx="14.8" cy="14.8" r="1.8" fill="#fffbeb"/>`
       );
     case 'MAGNET':
       return svgWrap(
         size,
         '0 0 32 32',
         `<path d="M8 15a8 8 0 0116 0" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round"/>
-         <path d="M24 17a8 8 0 01-16 0" stroke="#00f0ff" stroke-width="2.6" stroke-linecap="round"/>
-         <circle cx="16" cy="16" r="4.5" fill="#0ea5e9" stroke="#e0f2fe" stroke-width="1.5"/>
-         <path d="M5 11l3 4-4 1M27 21l-3-4 4-1" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`
+         <path d="M24 17a8 8 0 01-16 0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+         <circle cx="16" cy="16" r="4.8" fill="#0c4a6e" stroke="#f5b942" stroke-width="1.8"/>
+         <path d="M5 11l3 4-4 1M27 21l-3-4 4-1" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`
       );
   }
 }
@@ -89,10 +91,10 @@ export function getBallIconSvg(kind: BallKind, size = 24): string {
       return svgWrap(
         size,
         '0 0 32 32',
-        `<circle cx="16" cy="16" r="11.5" fill="#475569" stroke="#00f0ff" stroke-width="1.8"/>
-         <circle cx="14.8" cy="14.6" r="8.6" fill="#cbd5e1"/>
-         <circle cx="12.6" cy="11.8" r="4.3" fill="#ffffff"/>
-         <path d="M10.5 10.5a7 7 0 016.5-2" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>`
+        `<circle cx="16" cy="16" r="11.5" fill="#475569" stroke="#cbd5e1" stroke-width="1.6"/>
+         <circle cx="14.8" cy="14.6" r="8.8" fill="#cbd5e1"/>
+         <circle cx="13.5" cy="13.2" r="5.5" fill="#f1f5f9"/>
+         <circle cx="12.2" cy="11.4" r="3.2" fill="#ffffff"/>`
       );
     case 'BOMB':
       return svgWrap(
@@ -277,11 +279,12 @@ export function getUiIconSvg(name: UiIconName, size = 20): string {
       return svgWrap(
         size,
         '0 0 48 48',
-        `<circle cx="24" cy="24" r="20" fill="#0d1424" stroke="#00f0ff" stroke-width="2.2"/>
-         <circle cx="24" cy="24" r="14" fill="#131d33" stroke="#334155" stroke-width="1.8" stroke-dasharray="4 3"/>
-         <path d="M24 6v6M24 36v6M6 24h6M36 24h6" stroke="#475569" stroke-width="2" stroke-linecap="round"/>
-         <rect x="21" y="7" width="6" height="14" rx="2" fill="#ffb800"/>
-         <circle cx="24" cy="24" r="5" fill="#00f0ff"/>`
+        `<circle cx="24" cy="24" r="20" fill="#1e1924" stroke="#d99b26" stroke-width="2.6"/>
+         <circle cx="24" cy="24" r="14.5" fill="#2c2535" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="4 3"/>
+         <path d="M24 6v5M24 37v5M6 24h5M37 24h5" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+         <rect x="21" y="7" width="6" height="14" rx="2" fill="#e11d48" stroke="#fde047" stroke-width="1.2"/>
+         <circle cx="24" cy="24" r="5.5" fill="#e2e8f0" stroke="#78350f" stroke-width="1.5"/>
+         <circle cx="22.8" cy="22.8" r="2" fill="#ffffff"/>`
       );
     case 'lockOn':
       return svgWrap(
@@ -337,13 +340,15 @@ export function getUiIconSvg(name: UiIconName, size = 20): string {
       return svgWrap(
         size,
         '0 0 64 64',
-        `<polygon points="32,3 57,17 57,47 32,61 7,47 7,17" fill="#0d1424" stroke="#00f0ff" stroke-width="2.6"/>
-         <polygon points="32,9 51,20 51,44 32,55 13,44 13,20" stroke="#ffb800" stroke-width="1.4" opacity="0.75"/>
-         <polygon points="35,14 20,34 31,34 27,50 44,29 33,29" fill="#00f0ff"/>
-         <circle cx="19" cy="21" r="2.2" fill="#00ff88"/>
-         <circle cx="45" cy="21" r="2.2" fill="#ffb800"/>
-         <circle cx="19" cy="43" r="2.2" fill="#ff2a5f"/>
-         <circle cx="45" cy="43" r="2.2" fill="#00ff88"/>`
+        `<circle cx="32" cy="32" r="28" fill="#23141d" stroke="#f5b942" stroke-width="3"/>
+         <circle cx="32" cy="32" r="22" fill="#170f17" stroke="#e11d48" stroke-width="2"/>
+         <circle cx="32" cy="32" r="13" fill="#64748b" stroke="#fde047" stroke-width="1.8"/>
+         <circle cx="30" cy="30" r="9.5" fill="#cbd5e1"/>
+         <circle cx="27" cy="26.5" r="4.2" fill="#ffffff"/>
+         <circle cx="32" cy="8" r="2.6" fill="#fde047"/>
+         <circle cx="56" cy="32" r="2.6" fill="#fde047"/>
+         <circle cx="32" cy="56" r="2.6" fill="#fde047"/>
+         <circle cx="8" cy="32" r="2.6" fill="#fde047"/>`
       );
     case 'aimTarget':
       return svgWrap(

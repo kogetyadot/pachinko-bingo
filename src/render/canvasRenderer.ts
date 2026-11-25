@@ -642,16 +642,20 @@ export class CanvasRenderer {
     bctx.save();
     bctx.scale(this.dpr, this.dpr);
 
-    // 1. Deep Obsidian base fill outside dome silhouette
-    bctx.fillStyle = '#070a12';
+    // 1. Rich dark lacquered mahogany-obsidian cabinet outer casing
+    const outerGrad = bctx.createLinearGradient(0, 0, WORLD.WIDTH, WORLD.HEIGHT);
+    outerGrad.addColorStop(0, '#181016');
+    outerGrad.addColorStop(0.5, '#110d14');
+    outerGrad.addColorStop(1, '#0b0a10');
+    bctx.fillStyle = outerGrad;
     bctx.fillRect(0, 0, WORLD.WIDTH, WORLD.HEIGHT);
 
-    // 2. Clip playfield background tightly inside dome arch + side borders so square image corners never bleed
+    // 2. Clip playfield board tightly inside the pachinko dome arch + board frame
     bctx.save();
     bctx.beginPath();
     bctx.moveTo(WORLD.RAIL_X_MIN, WORLD.BINGO_BOTTOM + 12);
     bctx.lineTo(WORLD.RAIL_X_MIN, 116);
-    const steps = 44;
+    const steps = 48;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const theta = Math.PI + t * (Math.PI - 0.12);
@@ -668,80 +672,116 @@ export class CanvasRenderer {
 
     if (this.bgLoaded && this.bgImage) {
       bctx.save();
-      bctx.globalAlpha = 0.56;
+      bctx.globalAlpha = 0.88;
       bctx.drawImage(this.bgImage, 0, 0, WORLD.WIDTH, WORLD.HEIGHT);
       bctx.restore();
     } else {
-      const grad = bctx.createLinearGradient(0, 0, 0, WORLD.HEIGHT);
-      grad.addColorStop(0, '#0a1020');
-      grad.addColorStop(0.55, '#090e1a');
-      grad.addColorStop(1, '#060911');
+      // Fallback: rich lacquered deep crimson-navy Japanese pachinko board (セル盤面)
+      const grad = bctx.createRadialGradient(288, 250, 20, 288, 280, 340);
+      grad.addColorStop(0, '#2c1424');
+      grad.addColorStop(0.55, '#1a1122');
+      grad.addColorStop(1, '#0f0c16');
       bctx.fillStyle = grad;
       bctx.fillRect(0, 0, WORLD.WIDTH, WORLD.HEIGHT);
-
-      bctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
-      bctx.lineWidth = 1;
-      for (let x = 50; x <= 525; x += 23.75) {
-        bctx.beginPath();
-        bctx.moveTo(x, 0);
-        bctx.lineTo(x, WORLD.HEIGHT);
-        bctx.stroke();
-      }
-      for (let y = 0; y <= WORLD.HEIGHT; y += 24) {
-        bctx.beginPath();
-        bctx.moveTo(0, y);
-        bctx.lineTo(WORLD.WIDTH, y);
-        bctx.stroke();
-      }
     }
 
-    // Obsidian glass veil + soft top/bottom edge vignette mask inside playfield
+    // Warm parlor lighting vignette + depth shading so brass nails & chrome balls pop cleanly
     const veil = bctx.createLinearGradient(0, 0, 0, WORLD.HEIGHT);
-    veil.addColorStop(0, 'rgba(7, 10, 18, 0.72)');
-    veil.addColorStop(0.14, 'rgba(7, 10, 18, 0.42)');
-    veil.addColorStop(0.55, 'rgba(7, 10, 18, 0.60)');
-    veil.addColorStop(0.92, 'rgba(7, 10, 18, 0.88)');
-    veil.addColorStop(1, 'rgba(7, 10, 18, 0.98)');
+    veil.addColorStop(0, 'rgba(12, 8, 14, 0.56)');
+    veil.addColorStop(0.16, 'rgba(14, 9, 16, 0.24)');
+    veil.addColorStop(0.52, 'rgba(12, 9, 15, 0.34)');
+    veil.addColorStop(0.62, 'rgba(10, 10, 16, 0.82)');
+    veil.addColorStop(1, 'rgba(8, 9, 14, 0.94)');
     bctx.fillStyle = veil;
     bctx.fillRect(0, 0, WORLD.WIDTH, WORLD.HEIGHT);
+
+    // Subtle real pachinko cabinet front-glass diagonal reflection sheen
+    bctx.save();
+    const glassSheen = bctx.createLinearGradient(60, 40, 440, 360);
+    glassSheen.addColorStop(0, 'rgba(255, 250, 240, 0.0)');
+    glassSheen.addColorStop(0.38, 'rgba(255, 248, 235, 0.045)');
+    glassSheen.addColorStop(0.46, 'rgba(255, 255, 255, 0.09)');
+    glassSheen.addColorStop(0.52, 'rgba(255, 248, 235, 0.02)');
+    glassSheen.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+    bctx.fillStyle = glassSheen;
+    bctx.fillRect(WORLD.BOARD_LEFT, 24, WORLD.BOARD_WIDTH, 468);
     bctx.restore();
 
-    // 3. Static chassis rails, dome arch, flap gate, pocket fins, and bingo matrix enclosure
-    bctx.fillStyle = '#090f1d';
+    // Subtle decorative brass parlor pinstripe arch inside the upper board
+    bctx.strokeStyle = 'rgba(245, 185, 66, 0.14)';
+    bctx.lineWidth = 1.5;
+    bctx.beginPath();
+    bctx.arc(WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2, 290, 195, Math.PI * 1.12, Math.PI * 1.88);
+    bctx.stroke();
+
+    bctx.restore();
+
+    // 3. Realistic Brushed Steel Launch Chute (発射レール溝)
+    const chuteGrad = bctx.createLinearGradient(WORLD.RAIL_X_MIN, 0, WORLD.RAIL_X_MAX, 0);
+    chuteGrad.addColorStop(0, '#181a22');
+    chuteGrad.addColorStop(0.5, '#0b0d14');
+    chuteGrad.addColorStop(1, '#1e222e');
+    bctx.fillStyle = chuteGrad;
     bctx.fillRect(WORLD.RAIL_X_MIN, 116, WORLD.RAIL_X_MAX - WORLD.RAIL_X_MIN, 412);
 
-    bctx.strokeStyle = '#334155';
-    bctx.lineWidth = 3;
-    bctx.beginPath();
-    bctx.moveTo(WORLD.RAIL_X_MIN, 528);
-    bctx.lineTo(WORLD.RAIL_X_MIN, 116);
+    // Thick Brushed Chrome Outer Rail + Dome Arch (外レール)
+    const drawOuterArchPath = (offset: number) => {
+      bctx.beginPath();
+      bctx.moveTo(WORLD.RAIL_X_MIN + offset, 528);
+      bctx.lineTo(WORLD.RAIL_X_MIN + offset, 116);
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const theta = Math.PI + t * (Math.PI - 0.12);
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const rx = 239.5 - 9.5 * cosT + 13 - offset;
+        const ry = 88 + 13 - offset;
+        bctx.lineTo(WORLD.DOME_CENTER_X + rx * cosT, WORLD.DOME_CENTER_Y + ry * sinT);
+      }
+      bctx.lineTo(WORLD.BOARD_RIGHT + 2 - offset * 0.5, 116);
+      bctx.lineTo(WORLD.BOARD_RIGHT + 2 - offset * 0.5, WORLD.POCKET_BOTTOM + 4);
+    };
+
+    // Dark recessed rail housing shadow
+    bctx.strokeStyle = '#090a0f';
+    bctx.lineWidth = 8.5;
+    drawOuterArchPath(2);
     bctx.stroke();
 
-    bctx.strokeStyle = '#00f0ff';
-    bctx.lineWidth = 2.5;
-    bctx.beginPath();
-    bctx.moveTo(WORLD.RAIL_X_MIN + 4, 528);
-    bctx.lineTo(WORLD.RAIL_X_MIN + 4, 116);
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const theta = Math.PI + t * (Math.PI - 0.12);
-      const cosT = Math.cos(theta);
-      const sinT = Math.sin(theta);
-      const rx = 239.5 - 9.5 * cosT + 13;
-      const ry = 88 + 13;
-      bctx.lineTo(WORLD.DOME_CENTER_X + rx * cosT, WORLD.DOME_CENTER_Y + ry * sinT);
-    }
+    // Brushed steel body
+    bctx.strokeStyle = '#788496';
+    bctx.lineWidth = 5.5;
+    drawOuterArchPath(2);
     bctx.stroke();
 
-    bctx.strokeStyle = '#00f0ff';
+    // Gleaming chrome inner highlight + warm brass outer trim
+    bctx.strokeStyle = '#e8edf5';
     bctx.lineWidth = 2;
+    drawOuterArchPath(3);
+    bctx.stroke();
+
+    bctx.strokeStyle = 'rgba(245, 185, 66, 0.65)';
+    bctx.lineWidth = 1.2;
+    drawOuterArchPath(0.5);
+    bctx.stroke();
+
+    // Inner Stainless Steel Rail separating chute and playfield (内レール)
+    bctx.strokeStyle = '#384152';
+    bctx.lineWidth = 5;
     bctx.beginPath();
     bctx.moveTo(WORLD.RAIL_X_MAX, 528);
     bctx.lineTo(WORLD.RAIL_X_MAX, 116);
     bctx.stroke();
 
-    // Cool-steel inner dome guide arc (never confused with orange/gold trajectory preview)
-    bctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+    bctx.strokeStyle = '#d8e1ec';
+    bctx.lineWidth = 2;
+    bctx.beginPath();
+    bctx.moveTo(WORLD.RAIL_X_MAX - 0.5, 528);
+    bctx.lineTo(WORLD.RAIL_X_MAX - 0.5, 116);
+    bctx.stroke();
+
+    // Subtle inner dome chrome rim guide
+    bctx.strokeStyle = 'rgba(226, 232, 240, 0.16)';
     bctx.lineWidth = 1.5;
     bctx.beginPath();
     bctx.moveTo(WORLD.RAIL_X_MAX - 2, 116);
@@ -756,79 +796,143 @@ export class CanvasRenderer {
     }
     bctx.stroke();
 
-    // Right wall bumper
-    bctx.strokeStyle = '#00f0ff';
-    bctx.lineWidth = 2.5;
-    bctx.beginPath();
-    bctx.moveTo(WORLD.BOARD_RIGHT, 116);
-    bctx.lineTo(WORLD.BOARD_RIGHT, WORLD.POCKET_BOTTOM);
-    bctx.stroke();
-
-    // One-way anti-return flap gate at x=50, y=116
-    bctx.strokeStyle = '#ffb800';
-    bctx.lineWidth = 3;
+    // Authentic Brass & Rubber One-Way Return Flap (返し弁) at x=50, y=102
+    bctx.strokeStyle = '#1f1608';
+    bctx.lineWidth = 5;
+    bctx.lineCap = 'round';
     bctx.beginPath();
     bctx.moveTo(WORLD.BOARD_LEFT, 102);
     bctx.lineTo(WORLD.BOARD_LEFT + 14, 122);
     bctx.stroke();
-    bctx.fillStyle = '#ffb800';
-    bctx.beginPath();
-    bctx.arc(WORLD.BOARD_LEFT, 102, 3.2, 0, Math.PI * 2);
-    bctx.fill();
 
-    // Bake static idle B-I-N-G-O pockets before divider fins
+    bctx.strokeStyle = '#f5b942';
+    bctx.lineWidth = 2.6;
+    bctx.beginPath();
+    bctx.moveTo(WORLD.BOARD_LEFT, 102);
+    bctx.lineTo(WORLD.BOARD_LEFT + 14, 122);
+    bctx.stroke();
+
+    bctx.fillStyle = '#fde68a';
+    bctx.strokeStyle = '#78350f';
+    bctx.lineWidth = 1.2;
+    bctx.beginPath();
+    bctx.arc(WORLD.BOARD_LEFT, 102, 3.8, 0, Math.PI * 2);
+    bctx.fill();
+    bctx.stroke();
+
+    // 4. Bake Static Idle Mechanical Pockets (入賞口 B・I・N・G・O)
     const top = WORLD.POCKET_TOP;
     const bottom = WORLD.POCKET_BOTTOM;
     const pocketH = bottom - top;
     const pocketLabels = ['B', 'I', 'N', 'G', 'O'] as const;
+
+    // Continuous metallic pocket rail bar behind all 5 chutes
+    const pocketBarGrad = bctx.createLinearGradient(0, top, 0, bottom + 6);
+    pocketBarGrad.addColorStop(0, '#333b4d');
+    pocketBarGrad.addColorStop(0.5, '#191d28');
+    pocketBarGrad.addColorStop(1, '#0c0f16');
+    bctx.fillStyle = pocketBarGrad;
+    bctx.fillRect(WORLD.BOARD_LEFT - 2, top + 1, WORLD.BOARD_WIDTH + 4, pocketH + 4);
+
     for (let c = 0; c < 5; c++) {
       const xLeft = WORLD.BOARD_LEFT + c * WORLD.COL_WIDTH;
       const xCenter = xLeft + WORLD.COL_WIDTH / 2;
-      const px = xLeft + 3;
-      const pw = WORLD.COL_WIDTH - 6;
+      const px = xLeft + 4;
+      const pw = WORLD.COL_WIDTH - 8;
 
-      bctx.fillStyle = 'rgba(13, 20, 36, 0.92)';
-      bctx.fillRect(px, top + 4, pw, pocketH - 6);
-      bctx.strokeStyle = '#00f0ff';
+      // Recessed backlit acrylic pocket lens
+      const lensGrad = bctx.createLinearGradient(px, top + 5, px, bottom - 2);
+      lensGrad.addColorStop(0, '#2a1d28');
+      lensGrad.addColorStop(0.32, '#1a1523');
+      lensGrad.addColorStop(1, '#0d0c14');
+      bctx.fillStyle = lensGrad;
+      this.roundedRectPath(bctx, px, top + 5, pw, pocketH - 8, 5);
+      bctx.fill();
+
+      // Glossy top glass edge inside pocket
+      bctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      bctx.fillRect(px + 3, top + 6, pw - 6, 8);
+
+      // Brass-gold recessed pocket border
+      bctx.strokeStyle = 'rgba(245, 185, 66, 0.55)';
       bctx.lineWidth = 1.4;
-      bctx.strokeRect(px, top + 4, pw, pocketH - 6);
+      this.roundedRectPath(bctx, px, top + 5, pw, pocketH - 8, 5);
+      bctx.stroke();
 
-      bctx.fillStyle = '#e2f8ff';
-      bctx.font = '900 20px Orbitron, sans-serif';
+      // Illuminated pocket letter (B I N G O)
+      bctx.fillStyle = '#fff3d1';
+      bctx.font = '900 20px Orbitron, "Chakra Petch", sans-serif';
       bctx.textAlign = 'center';
       bctx.textBaseline = 'middle';
       bctx.fillText(pocketLabels[c], xCenter, top + 27);
 
-      bctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-      bctx.font = '700 9px "Chakra Petch", sans-serif';
-      bctx.fillText(`COL ${c + 1}`, xCenter, top + 48);
+      bctx.fillStyle = 'rgba(245, 185, 66, 0.72)';
+      bctx.font = '700 8.5px "Chakra Petch", sans-serif';
+      bctx.fillText(`入賞口 ${c + 1}`, xCenter, top + 47);
     }
 
-    // Sloped neon divider fins at x = 50, 145, 240, 335, 430, 525
+    // Metallic Chrome & Brass Chute Divider Fins (入賞口仕切り羽根)
     for (let i = 0; i <= 5; i++) {
       const fx = WORLD.BOARD_LEFT + i * WORLD.COL_WIDTH;
-      bctx.fillStyle = '#0d1424';
-      bctx.strokeStyle = '#00f0ff';
-      bctx.lineWidth = 2;
+      const finGrad = bctx.createLinearGradient(fx - 5, top, fx + 5, top);
+      finGrad.addColorStop(0, '#64748b');
+      finGrad.addColorStop(0.45, '#f8fafc');
+      finGrad.addColorStop(1, '#334155');
+      bctx.fillStyle = finGrad;
+      bctx.strokeStyle = '#92400e';
+      bctx.lineWidth = 1.4;
       bctx.beginPath();
-      bctx.moveTo(fx - 4, bottom);
-      bctx.lineTo(fx - 2.5, top + 6);
-      bctx.lineTo(fx, top - 6);
-      bctx.lineTo(fx + 2.5, top + 6);
-      bctx.lineTo(fx + 4, bottom);
+      bctx.moveTo(fx - 5, bottom + 2);
+      bctx.lineTo(fx - 3, top + 6);
+      bctx.lineTo(fx, top - 7);
+      bctx.lineTo(fx + 3, top + 6);
+      bctx.lineTo(fx + 5, bottom + 2);
       bctx.closePath();
       bctx.fill();
       bctx.stroke();
+
+      // Brass rivet head on each divider fin
+      bctx.fillStyle = '#f5b942';
+      bctx.beginPath();
+      bctx.arc(fx, top + 12, 2.2, 0, Math.PI * 2);
+      bctx.fill();
     }
 
-    // Bingo Matrix enclosure
+    // 5. Recessed Illuminated Acrylic Bingo Unit Frame (電飾ビンゴユニット枠)
     const gridTop = WORLD.BINGO_TOP;
     const gridH = WORLD.BINGO_BOTTOM - WORLD.BINGO_TOP;
-    bctx.fillStyle = 'rgba(8, 13, 25, 0.94)';
-    bctx.fillRect(WORLD.BOARD_LEFT - 2, gridTop - 4, WORLD.BOARD_WIDTH + 4, gridH + 8);
-    bctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
-    bctx.lineWidth = 1.5;
-    bctx.strokeRect(WORLD.BOARD_LEFT - 2, gridTop - 4, WORLD.BOARD_WIDTH + 4, gridH + 8);
+    const frameGrad = bctx.createLinearGradient(0, gridTop - 8, 0, WORLD.BINGO_BOTTOM + 8);
+    frameGrad.addColorStop(0, '#303644');
+    frameGrad.addColorStop(0.5, '#191d27');
+    frameGrad.addColorStop(1, '#272c38');
+    bctx.fillStyle = frameGrad;
+    this.roundedRectPath(bctx, WORLD.BOARD_LEFT - 6, gridTop - 7, WORLD.BOARD_WIDTH + 12, gridH + 14, 10);
+    bctx.fill();
+
+    // Inner jet-black LED display cavity
+    bctx.fillStyle = '#090b12';
+    this.roundedRectPath(bctx, WORLD.BOARD_LEFT - 2, gridTop - 3, WORLD.BOARD_WIDTH + 4, gridH + 6, 7);
+    bctx.fill();
+
+    // Brushed gold cabinet trim border
+    bctx.strokeStyle = 'rgba(245, 185, 66, 0.72)';
+    bctx.lineWidth = 1.8;
+    this.roundedRectPath(bctx, WORLD.BOARD_LEFT - 6, gridTop - 7, WORLD.BOARD_WIDTH + 12, gridH + 14, 10);
+    bctx.stroke();
+
+    // 4 Corner brass mounting rivets on the Bingo unit
+    const rivetPts = [
+      [WORLD.BOARD_LEFT - 2, gridTop - 3],
+      [WORLD.BOARD_RIGHT + 2, gridTop - 3],
+      [WORLD.BOARD_LEFT - 2, WORLD.BINGO_BOTTOM + 3],
+      [WORLD.BOARD_RIGHT + 2, WORLD.BINGO_BOTTOM + 3],
+    ];
+    for (const [rx, ry] of rivetPts) {
+      bctx.fillStyle = '#f5b942';
+      bctx.beginPath();
+      bctx.arc(rx, ry, 2.5, 0, Math.PI * 2);
+      bctx.fill();
+    }
 
     bctx.restore();
   }
@@ -904,25 +1008,25 @@ export class CanvasRenderer {
   }
 
   private drawDynamicRailControls(ctx: CanvasRenderingContext2D, state: GameStateSnapshot): void {
-    // Animated chevron light chase inside the launch chute
-    const scroll = (state.simTime * 110) % 28;
-    ctx.strokeStyle = state.strokeLocked ? 'rgba(0, 255, 136, 0.5)' : 'rgba(0, 240, 255, 0.35)';
-    ctx.lineWidth = 2;
+    // Warm golden LED guide pips inside the brushed steel chute
+    const scroll = (state.simTime * 90) % 30;
+    ctx.strokeStyle = state.strokeLocked ? 'rgba(52, 211, 153, 0.55)' : 'rgba(245, 185, 66, 0.36)';
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    for (let y = 500 - scroll; y >= 128; y -= 28) {
-      ctx.moveTo(22, y + 6);
+    for (let y = 496 - scroll; y >= 128; y -= 30) {
+      ctx.moveTo(23, y + 5);
       ctx.lineTo(WORLD.RAIL_X_CENTER, y);
-      ctx.lineTo(40, y + 6);
+      ctx.lineTo(39, y + 5);
     }
     ctx.stroke();
 
-    // Spring plunger at (31, 505) compressing proportionally to state.launchPower
+    // Mechanical steel coil spring + brass striker hammer compressing to launchPower
     const basePlungerY = 505;
     const compress = state.launchPower * 22;
     const headY = basePlungerY + compress;
 
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
     const coils = 5;
     for (let i = 0; i <= coils; i++) {
@@ -933,26 +1037,30 @@ export class CanvasRenderer {
     }
     ctx.stroke();
 
-    // Plunger striker cap
-    ctx.fillStyle = '#ffb800';
-    ctx.fillRect(20, headY - 7, 22, 9);
-    ctx.strokeStyle = '#fff7ed';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(20, headY - 7, 22, 9);
+    // Brass striker hammer head with chrome rim
+    const headGrad = ctx.createLinearGradient(20, headY - 8, 42, headY + 2);
+    headGrad.addColorStop(0, '#fde68a');
+    headGrad.addColorStop(0.5, '#d97706');
+    headGrad.addColorStop(1, '#78350f');
+    ctx.fillStyle = headGrad;
+    ctx.fillRect(20, headY - 8, 22, 10);
+    ctx.strokeStyle = '#fef3c7';
+    ctx.lineWidth = 1.1;
+    ctx.strokeRect(20, headY - 8, 22, 10);
 
     // Power percentage indicator at bottom of chute
-    ctx.fillStyle = '#00f0ff';
-    ctx.font = '700 10px Orbitron, monospace';
+    ctx.fillStyle = '#fde68a';
+    ctx.font = '800 10px "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`${Math.round(state.launchPower * 100)}%`, WORLD.RAIL_X_CENTER, 546);
   }
 
   private getStrokeLabel(power: number): { text: string; color: string } {
-    if (power < 0.24) return { text: '左打ち', color: '#00ff88' };
-    if (power <= 0.42) return { text: 'ぶっ込み', color: '#00f0ff' };
-    if (power < 0.68) return { text: '中央', color: '#38bdf8' };
-    if (power < 0.85) return { text: '右狙い', color: '#ffb800' };
-    return { text: '右打ち全開', color: '#ff2a5f' };
+    if (power < 0.24) return { text: '左打ち', color: '#34d399' };
+    if (power <= 0.42) return { text: 'ぶっ込み', color: '#fbbf24' };
+    if (power < 0.68) return { text: '中央', color: '#fde68a' };
+    if (power < 0.85) return { text: '右狙い', color: '#f97316' };
+    return { text: '右打ち全開', color: '#fb7185' };
   }
 
   private drawTrajectoryPreview(
@@ -978,12 +1086,12 @@ export class CanvasRenderer {
       Math.min(4, Math.floor((endPt.x - WORLD.BOARD_LEFT) / WORLD.COL_WIDTH))
     );
     const isReachAim = Boolean(state.reachColumns[targetCol]);
-    const guideColor = isReachAim ? '#ffd000' : stroke.color;
+    const guideColor = isReachAim ? '#fde047' : stroke.color;
 
     ctx.save();
     ctx.strokeStyle = guideColor;
     ctx.lineWidth = isReachAim ? 2.8 : 2;
-    ctx.globalAlpha = isReachAim ? 0.82 : 0.6;
+    ctx.globalAlpha = isReachAim ? 0.85 : 0.62;
     ctx.setLineDash([6, 6]);
     ctx.lineDashOffset = -Math.floor(state.simTime * 12) * 3;
     ctx.beginPath();
@@ -1025,11 +1133,12 @@ export class CanvasRenderer {
     const bx = Math.max(WORLD.BOARD_LEFT + 6, Math.min(WORLD.BOARD_RIGHT - w - 6, rx - w / 2));
     const by = Math.max(28, ry - 30);
 
-    ctx.fillStyle = 'rgba(7, 10, 18, 0.88)';
-    ctx.fillRect(bx, by, w, 20);
+    ctx.fillStyle = 'rgba(20, 12, 16, 0.92)';
+    this.roundedRectPath(ctx, bx, by, w, 20, 5);
+    ctx.fill();
     ctx.strokeStyle = guideColor;
     ctx.lineWidth = 1.4;
-    ctx.strokeRect(bx, by, w, 20);
+    ctx.stroke();
 
     ctx.fillStyle = guideColor;
     ctx.textAlign = 'center';
@@ -1043,10 +1152,21 @@ export class CanvasRenderer {
       state.phase === 'SHOP' &&
       (this.boardTuneHighlight || state.pendingPinInventory.length > 0 || state.selectedPinBrush !== null);
 
-    // Fast batched pass for all idle NORMAL pins (~44 pins in 2 draw calls instead of 135)
-    ctx.fillStyle = '#0d1424';
-    ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 2;
+    // 1. Batched realistic drop shadows for all idle brass nails (真鍮釘の落ち影)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.beginPath();
+    for (const pin of state.pins) {
+      if (pin.kind === 'NORMAL' && pin.hitAnim <= 0.05) {
+        ctx.moveTo(pin.x + 2.5 + pin.radius, pin.y + 3.2);
+        ctx.arc(pin.x + 2.5, pin.y + 3.2, pin.radius + 0.5, 0, Math.PI * 2);
+      }
+    }
+    ctx.fill();
+
+    // 2. Batched polished brass nail bodies + antique bronze rims
+    ctx.fillStyle = '#e5a93b';
+    ctx.strokeStyle = '#6b3a08';
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
     for (const pin of state.pins) {
       if (pin.kind === 'NORMAL' && pin.hitAnim <= 0.05) {
@@ -1057,13 +1177,14 @@ export class CanvasRenderer {
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#e2f8ff';
+    // 3. Batched bright metallic brass crown highlights
+    ctx.fillStyle = '#fff8dc';
     ctx.beginPath();
     for (const pin of state.pins) {
       if (pin.kind === 'NORMAL' && pin.hitAnim <= 0.05) {
         const sr = pin.radius * 0.42;
-        ctx.moveTo(pin.x - 1 + sr, pin.y - 1);
-        ctx.arc(pin.x - 1, pin.y - 1, sr, 0, Math.PI * 2);
+        ctx.moveTo(pin.x - 1.6 + sr, pin.y - 1.8);
+        ctx.arc(pin.x - 1.6, pin.y - 1.8, sr, 0, Math.PI * 2);
       }
     }
     ctx.fill();
@@ -1077,9 +1198,9 @@ export class CanvasRenderer {
 
         if (state.pendingPinInventory.length > 0 || state.selectedPinBrush || isRelocatableInstalled) {
           ctx.save();
-          ctx.strokeStyle = isHovered ? '#ffd000' : isRelocatableInstalled ? '#38bdf8' : '#00ff88';
+          ctx.strokeStyle = isHovered ? '#ffd000' : isRelocatableInstalled ? '#38bdf8' : '#34d399';
           ctx.lineWidth = isHovered ? 2.8 : 1.8;
-          ctx.globalAlpha = isHovered ? 0.98 : 0.45 + pulse * 0.45;
+          ctx.globalAlpha = isHovered ? 0.98 : 0.48 + pulse * 0.45;
           ctx.setLineDash([4, 3]);
           ctx.beginPath();
           ctx.arc(pin.x, pin.y, pin.radius + 9 + pulse * 2.5, 0, Math.PI * 2);
@@ -1094,15 +1215,21 @@ export class CanvasRenderer {
       }
 
       const def = PIN_CATALOG[pin.kind];
-      const hitScale = 1 + pin.hitAnim * 0.35;
+      const hitScale = 1 + pin.hitAnim * 0.32;
 
       ctx.save();
       ctx.translate(pin.x, pin.y);
       ctx.scale(hitScale, hitScale);
 
+      // Physical drop shadow under special yakumono / hit nail
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.beginPath();
+      ctx.arc(2.5, 3.5, pin.radius + 1, 0, Math.PI * 2);
+      ctx.fill();
+
       if (pin.hitAnim > 0.05) {
-        ctx.fillStyle = def.color;
-        ctx.globalAlpha = pin.hitAnim * 0.45;
+        ctx.fillStyle = pin.kind === 'NORMAL' ? '#fde68a' : def.color;
+        ctx.globalAlpha = pin.hitAnim * 0.52;
         ctx.beginPath();
         ctx.arc(0, 0, pin.radius + 9, 0, Math.PI * 2);
         ctx.fill();
@@ -1111,25 +1238,27 @@ export class CanvasRenderer {
 
       switch (pin.kind) {
         case 'NORMAL': {
-          ctx.fillStyle = '#0d1424';
-          ctx.strokeStyle = pin.hitAnim > 0.1 ? '#ffffff' : '#00f0ff';
-          ctx.lineWidth = 2;
+          // Struck brass nail flashing warm white-gold
+          ctx.fillStyle = pin.hitAnim > 0.25 ? '#fef3c7' : '#f5b942';
+          ctx.strokeStyle = '#92400e';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
           ctx.arc(0, 0, pin.radius, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
-          ctx.fillStyle = '#e2f8ff';
+          ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(-1, -1, pin.radius * 0.42, 0, Math.PI * 2);
+          ctx.arc(-1.6, -1.8, pin.radius * 0.45, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case 'SPLITTER': {
+          // Emerald Acrylic 3-Blade Prism Yakumono with Brass Hub
           ctx.rotate(pin.spinAngle);
-          const r = pin.radius + 2.5;
-          ctx.fillStyle = '#063225';
-          ctx.strokeStyle = '#00ff88';
+          const r = pin.radius + 3;
+          ctx.fillStyle = '#065f46';
+          ctx.strokeStyle = '#6ee7b7';
           ctx.lineWidth = 2.2;
           ctx.beginPath();
           for (let i = 0; i < 3; i++) {
@@ -1143,104 +1272,126 @@ export class CanvasRenderer {
           ctx.fill();
           ctx.stroke();
 
-          ctx.fillStyle = '#86efac';
+          ctx.fillStyle = '#34d399';
           for (let i = 0; i < 3; i++) {
             const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
             ctx.beginPath();
-            ctx.arc(Math.cos(a) * (r * 0.48), Math.sin(a) * (r * 0.48), 2, 0, Math.PI * 2);
+            ctx.arc(Math.cos(a) * (r * 0.48), Math.sin(a) * (r * 0.48), 2.1, 0, Math.PI * 2);
             ctx.fill();
           }
+          ctx.fillStyle = '#fde68a';
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
           break;
         }
         case 'BUMPER': {
+          // Classic Chrome-Gold & Ruby Arcade Rebound Bumper Cap
           const r = pin.radius;
-          ctx.fillStyle = '#362104';
-          ctx.strokeStyle = '#ffb800';
-          ctx.lineWidth = 2.4;
+          ctx.fillStyle = '#991b1b';
+          ctx.strokeStyle = '#f5b942';
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          for (let i = 0; i < 8; i++) {
-            const a = (i * Math.PI) / 4 + Math.PI / 8;
-            const px = Math.cos(a) * r;
-            const py = Math.sin(a) * r;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
-          ctx.strokeStyle = '#ffd000';
+          ctx.strokeStyle = '#fef3c7';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(0, 0, r * 0.56, 0, Math.PI * 2);
+          ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
           ctx.stroke();
 
-          ctx.fillStyle = '#fff3c4';
+          ctx.fillStyle = '#fde047';
           ctx.beginPath();
-          ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+          ctx.arc(0, 0, r * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(-1.8, -1.8, 2.2, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case 'SPINNER': {
+          // Authentic Japanese Pachinko Plastic Pinwheel (風車) with brass nail axle!
           ctx.rotate(pin.spinAngle);
-          const r = pin.radius + 1;
-          ctx.fillStyle = '#ff2a5f';
-          for (let i = 0; i < 4; i++) {
-            ctx.rotate(Math.PI / 2);
+          const r = pin.radius + 2.5;
+          for (let i = 0; i < 6; i++) {
+            ctx.rotate(Math.PI / 3);
+            ctx.fillStyle = i % 2 === 0 ? '#f43f5e' : '#ffe4e6';
+            ctx.strokeStyle = '#9f1239';
+            ctx.lineWidth = 0.8;
             ctx.beginPath();
-            ctx.moveTo(0, -2.5);
-            ctx.lineTo(r, 0);
-            ctx.lineTo(0, 2.5);
+            ctx.moveTo(0, -1.8);
+            ctx.quadraticCurveTo(r * 0.65, -4.2, r, -0.5);
+            ctx.lineTo(r * 0.82, 2.4);
+            ctx.lineTo(0, 1.8);
             ctx.closePath();
             ctx.fill();
+            ctx.stroke();
           }
-          ctx.fillStyle = '#f8fafc';
-          ctx.strokeStyle = '#ff2a5f';
-          ctx.lineWidth = 1.8;
+          ctx.fillStyle = '#fde68a';
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.arc(0, 0, 4.2, 0, Math.PI * 2);
+          ctx.arc(0, 0, 3.8, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
           break;
         }
         case 'BOMB_PIN': {
-          const pulse = 0.88 + 0.14 * Math.sin(state.simTime * 9);
+          // Brass-Bezel Crimson Hazard Detonator Cap
+          const pulse = 0.92 + 0.1 * Math.sin(state.simTime * 9);
           ctx.scale(pulse, pulse);
-          ctx.fillStyle = '#310a06';
-          ctx.strokeStyle = '#ff6b00';
-          ctx.lineWidth = 2.2;
+          ctx.fillStyle = '#450a0a';
+          ctx.strokeStyle = '#f97316';
+          ctx.lineWidth = 2.6;
           ctx.beginPath();
           ctx.arc(0, 0, pin.radius, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
-          ctx.strokeStyle = '#ff2a5f';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#fde047';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
-          ctx.moveTo(-pin.radius + 2, 0);
-          ctx.lineTo(pin.radius - 2, 0);
-          ctx.moveTo(0, -pin.radius + 2);
-          ctx.lineTo(0, pin.radius - 2);
+          ctx.moveTo(-pin.radius + 3, 0);
+          ctx.lineTo(pin.radius - 3, 0);
+          ctx.moveTo(0, -pin.radius + 3);
+          ctx.lineTo(0, pin.radius - 3);
           ctx.stroke();
 
-          ctx.fillStyle = '#ffd000';
+          ctx.fillStyle = '#ff2a5f';
           ctx.beginPath();
-          ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+          ctx.arc(0, 0, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fffbeb';
+          ctx.beginPath();
+          ctx.arc(-1.2, -1.2, 1.4, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case 'MAGNET': {
-          ctx.fillStyle = '#092338';
+          // Copper-Coil Electromagnetic Ring Yakumono
+          ctx.fillStyle = '#0c2742';
           ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2.4;
           ctx.beginPath();
           ctx.arc(0, 0, pin.radius, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
-          ctx.rotate(state.simTime * 3.5);
-          ctx.strokeStyle = '#00f0ff';
+          ctx.strokeStyle = '#d97706';
           ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, pin.radius * 0.58, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.rotate(state.simTime * 3.5);
+          ctx.strokeStyle = '#7dd3fc';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
           ctx.arc(0, 0, pin.radius + 3.5, 0, Math.PI * 0.75);
           ctx.stroke();
@@ -1263,27 +1414,34 @@ export class CanvasRenderer {
     const cached = this.ballGradientCache.get(key);
     if (cached) return cached;
 
-    const grad = ctx.createRadialGradient(-2.8, -2.8, 1.2, 0, 0, radius);
+    const grad = ctx.createRadialGradient(-2.8, -3.0, 0.8, 0, 0, radius);
     if (kind === 'STEEL') {
+      // Authentic mirror-polished silver chrome pachinko ball (銀玉)
       grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.45, '#cbd5e1');
-      grad.addColorStop(1, '#475569');
+      grad.addColorStop(0.28, '#f1f5f9');
+      grad.addColorStop(0.62, '#94a3b8');
+      grad.addColorStop(0.88, '#475569');
+      grad.addColorStop(1, '#cbd5e1');
     } else if (kind === 'GOLD') {
       grad.addColorStop(0, '#fffbeb');
-      grad.addColorStop(0.5, '#ffd000');
-      grad.addColorStop(1, '#b45309');
+      grad.addColorStop(0.4, '#fde047');
+      grad.addColorStop(0.82, '#b45309');
+      grad.addColorStop(1, '#fef08a');
     } else if (kind === 'BOMB') {
-      grad.addColorStop(0, '#ffd8a8');
-      grad.addColorStop(0.45, '#ff5500');
-      grad.addColorStop(1, '#7f1d1d');
+      grad.addColorStop(0, '#fed7aa');
+      grad.addColorStop(0.42, '#ea580c');
+      grad.addColorStop(0.85, '#7f1d1d');
+      grad.addColorStop(1, '#fb923c');
     } else if (kind === 'MULTI') {
       grad.addColorStop(0, '#ecfdf5');
-      grad.addColorStop(0.5, '#00ff88');
-      grad.addColorStop(1, '#065f46');
+      grad.addColorStop(0.45, '#34d399');
+      grad.addColorStop(0.85, '#065f46');
+      grad.addColorStop(1, '#6ee7b7');
     } else {
       grad.addColorStop(0, '#ecfeff');
-      grad.addColorStop(0.5, '#00f0ff');
-      grad.addColorStop(1, '#0369a1');
+      grad.addColorStop(0.45, '#38bdf8');
+      grad.addColorStop(0.85, '#0369a1');
+      grad.addColorStop(1, '#7dd3fc');
     }
     this.ballGradientCache.set(key, grad);
     return grad;
@@ -1292,11 +1450,11 @@ export class CanvasRenderer {
   private drawBalls(ctx: CanvasRenderingContext2D, balls: BallEntity[]): void {
     if (balls.length === 0) return;
 
-    // 1. Batch motion trails by glow color across 2 alpha buckets (reduces ~600 stroke calls -> ~10)
+    // 1. Subtle metallic motion trails batched by kind color
     const trailsByColor = new Map<string, BallEntity[]>();
     for (const ball of balls) {
       if (ball.trail.length < 2) continue;
-      const color = BALL_CATALOG[ball.kind].glowColor;
+      const color = ball.kind === 'STEEL' ? '#e2e8f0' : BALL_CATALOG[ball.kind].glowColor;
       let list = trailsByColor.get(color);
       if (!list) {
         list = [];
@@ -1311,9 +1469,8 @@ export class CanvasRenderer {
     trailsByColor.forEach((group, color) => {
       ctx.strokeStyle = color;
 
-      // Tail half (faint)
-      ctx.globalAlpha = 0.18;
-      ctx.lineWidth = 4.2;
+      ctx.globalAlpha = 0.14;
+      ctx.lineWidth = 4;
       ctx.beginPath();
       for (const b of group) {
         const mid = Math.floor(b.trail.length * 0.5);
@@ -1325,9 +1482,8 @@ export class CanvasRenderer {
       }
       ctx.stroke();
 
-      // Head half (bright)
-      ctx.globalAlpha = 0.45;
-      ctx.lineWidth = 8.2;
+      ctx.globalAlpha = 0.34;
+      ctx.lineWidth = 7.4;
       ctx.beginPath();
       for (const b of group) {
         const mid = Math.floor(b.trail.length * 0.5);
@@ -1340,42 +1496,56 @@ export class CanvasRenderer {
     });
     ctx.restore();
 
-    // 2. Draw glossy metallic spheres + kind-specific emblems
+    // 2. Draw physical chrome spheres with subtle cast drop shadow onto the board
     for (const ball of balls) {
       const def = BALL_CATALOG[ball.kind];
 
       ctx.save();
       ctx.translate(ball.x, ball.y);
 
-      // Outer aura
-      ctx.fillStyle = def.glowColor;
-      ctx.globalAlpha = ball.kind === 'GOLD' || ball.kind === 'BOMB' ? 0.35 : 0.24;
+      // Soft physical drop shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
       ctx.beginPath();
-      ctx.arc(0, 0, ball.radius + 4, 0, Math.PI * 2);
+      ctx.arc(2.4, 3.2, ball.radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
+
+      // Special balls carry a subtle backlit halo
+      if (ball.kind !== 'STEEL') {
+        ctx.fillStyle = def.glowColor;
+        ctx.globalAlpha = ball.kind === 'GOLD' || ball.kind === 'BOMB' ? 0.3 : 0.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, ball.radius + 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
 
       ctx.fillStyle = this.getBallGradient(ctx, ball.kind, ball.radius);
       ctx.beginPath();
       ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
       ctx.fill();
 
+      // Crisp specular pinpoint highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.beginPath();
+      ctx.arc(-ball.radius * 0.34, -ball.radius * 0.34, ball.radius * 0.24, 0, Math.PI * 2);
+      ctx.fill();
+
       if (ball.kind === 'BOMB') {
-        ctx.strokeStyle = ball.megaBomb ? '#ffd000' : '#ff2a5f';
+        ctx.strokeStyle = ball.megaBomb ? '#fde047' : '#ff2a5f';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.arc(0, 0, ball.radius + (ball.megaBomb ? 2.5 : 1), 0, Math.PI * 2);
+        ctx.arc(0, 0, ball.radius + (ball.megaBomb ? 2.4 : 1), 0, Math.PI * 2);
         ctx.stroke();
       } else if (ball.kind === 'LASER') {
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.moveTo(-ball.radius + 1, 0);
-        ctx.lineTo(ball.radius - 1, 0);
+        ctx.moveTo(-ball.radius + 1.5, 0);
+        ctx.lineTo(ball.radius - 1.5, 0);
         ctx.stroke();
       } else if (ball.kind === 'MULTI') {
         ctx.strokeStyle = '#a7f3d0';
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.3;
         ctx.beginPath();
         ctx.arc(0, 0, ball.radius * 0.55, 0, Math.PI * 2);
         ctx.stroke();
@@ -1404,30 +1574,37 @@ export class CanvasRenderer {
     height: number,
     simTime: number
   ): void {
-    const x = p.xLeft + 3;
-    const w = WORLD.COL_WIDTH - 6;
+    const x = p.xLeft + 4;
+    const w = WORLD.COL_WIDTH - 8;
 
     ctx.fillStyle = p.overdrive
-      ? 'rgba(6, 46, 35, 0.92)'
+      ? 'rgba(6, 78, 59, 0.95)'
       : p.isReachTarget
-        ? 'rgba(46, 29, 6, 0.9)'
-        : 'rgba(13, 20, 36, 0.92)';
-    ctx.fillRect(x, top + 4, w, height - 6);
+        ? 'rgba(110, 48, 8, 0.94)'
+        : 'rgba(34, 24, 34, 0.94)';
+    this.roundedRectPath(ctx, x, top + 5, w, height - 8, 5);
+    ctx.fill();
 
-    const borderColor = p.overdrive ? '#00ff88' : p.isReachTarget ? '#ffb800' : '#00f0ff';
+    // Glossy acrylic lens highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillRect(x + 3, top + 6, w - 6, 9);
+
+    const borderColor = p.overdrive ? '#34d399' : p.isReachTarget ? '#fbbf24' : '#f5b942';
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = p.overdrive || p.isReachTarget ? 2.2 : 1.4;
-    ctx.strokeRect(x, top + 4, w, height - 6);
+    ctx.lineWidth = p.overdrive || p.isReachTarget ? 2.4 : 1.5;
+    this.roundedRectPath(ctx, x, top + 5, w, height - 8, 5);
+    ctx.stroke();
 
     if (p.hitAnim > 0.02) {
-      ctx.fillStyle = borderColor;
-      ctx.globalAlpha = p.hitAnim * 0.45;
-      ctx.fillRect(x, top + 4, w, height - 6);
+      ctx.fillStyle = '#fffbeb';
+      ctx.globalAlpha = p.hitAnim * 0.48;
+      this.roundedRectPath(ctx, x, top + 5, w, height - 8, 5);
+      ctx.fill();
       ctx.globalAlpha = 1;
     }
 
-    ctx.fillStyle = p.overdrive ? '#ecfdf5' : p.isReachTarget ? '#fffbeb' : '#e2f8ff';
-    ctx.font = '900 20px Orbitron, sans-serif';
+    ctx.fillStyle = p.overdrive ? '#ecfdf5' : '#fffbeb';
+    ctx.font = '900 20px Orbitron, "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(p.label, p.xCenter, top + 27);
@@ -1436,39 +1613,39 @@ export class CanvasRenderer {
       const flash = 0.78 + 0.22 * Math.sin(simTime * 12);
       ctx.save();
       ctx.globalAlpha = flash;
-      ctx.fillStyle = '#00ff88';
+      ctx.fillStyle = '#6ee7b7';
       ctx.font = '800 8.5px "Chakra Petch", sans-serif';
-      ctx.fillText(`OVERDRIVE LV.${Math.max(1, p.overdriveLevel)}`, p.xCenter, top + 48);
+      ctx.fillText(`OVERDRIVE LV.${Math.max(1, p.overdriveLevel)}`, p.xCenter, top + 47);
       ctx.restore();
 
-      ctx.strokeStyle = '#00ff88';
+      ctx.strokeStyle = '#34d399';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       const segs = 5;
       for (let s = 0; s <= segs; s++) {
         const sx = x + 4 + ((w - 8) * s) / segs;
-        const sy = top + 6 + (s === 0 || s === segs ? 0 : Math.sin(simTime * 28 + s * 3) * 3.5);
+        const sy = top + 6 + (s === 0 || s === segs ? 0 : Math.sin(simTime * 28 + s * 3) * 3.2);
         if (s === 0) ctx.moveTo(sx, sy);
         else ctx.lineTo(sx, sy);
       }
       ctx.stroke();
     } else if (p.isReachTarget) {
       const bob = Math.sin(simTime * 8) * 3.5;
-      ctx.fillStyle = '#ffd000';
+      ctx.fillStyle = '#fde047';
       ctx.font = '800 10px "Chakra Petch", sans-serif';
       ctx.fillText('REACH!', p.xCenter, top - 16 + bob);
 
-      ctx.strokeStyle = '#ffd000';
-      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.moveTo(p.xCenter - 7, top - 9 + bob);
       ctx.lineTo(p.xCenter, top - 2 + bob);
       ctx.lineTo(p.xCenter + 7, top - 9 + bob);
       ctx.stroke();
     } else {
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-      ctx.font = '700 9px "Chakra Petch", sans-serif';
-      ctx.fillText('COL ' + (p.col + 1), p.xCenter, top + 48);
+      ctx.fillStyle = 'rgba(245, 185, 66, 0.72)';
+      ctx.font = '700 8.5px "Chakra Petch", sans-serif';
+      ctx.fillText(`入賞口 ${p.col + 1}`, p.xCenter, top + 47);
     }
   }
 
@@ -1545,59 +1722,85 @@ export class CanvasRenderer {
     w: number,
     h: number
   ): void {
-    const r = 6;
+    const r = 7;
     ctx.save();
     this.roundedRectPath(ctx, x, y, w, h, r);
 
     if (cell.inBingoLine) {
-      const g = ctx.createLinearGradient(x, y, x + w, y + h);
-      g.addColorStop(0, '#3a2604');
-      g.addColorStop(1, '#1e3a2f');
+      // Blazing Gold-Ruby Jackpot Acrylic Lamp
+      const g = ctx.createLinearGradient(x, y, x, y + h);
+      g.addColorStop(0, '#a16207');
+      g.addColorStop(0.45, '#78350f');
+      g.addColorStop(1, '#451a03');
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = '#ffd000';
+      ctx.strokeStyle = '#fde047';
       ctx.lineWidth = 2.4;
       ctx.stroke();
     } else if (cell.opened) {
+      // Warm Illuminated Amber-Emerald Lamp Tile
       const g = ctx.createLinearGradient(x, y, x, y + h);
-      g.addColorStop(0, '#0a3347');
-      g.addColorStop(1, '#091f34');
+      g.addColorStop(0, '#9a3412');
+      g.addColorStop(0.5, '#7c2d12');
+      g.addColorStop(1, '#431407');
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = '#00f0ff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.0;
       ctx.stroke();
     } else if (cell.inReachLine) {
-      ctx.fillStyle = '#19140a';
+      // Urgent Pulsing Target Cell
+      const g = ctx.createLinearGradient(x, y, x, y + h);
+      g.addColorStop(0, '#3b1521');
+      g.addColorStop(1, '#1e0b12');
+      ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 184, 0, 0.72)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fb7185';
+      ctx.lineWidth = 2.0;
       ctx.stroke();
     } else {
-      ctx.fillStyle = '#0d1424';
+      // Unlit Smoked Acrylic Lamp Tile with subtle depth bevel
+      const g = ctx.createLinearGradient(x, y, x, y + h);
+      g.addColorStop(0, '#222634');
+      g.addColorStop(0.55, '#161923');
+      g.addColorStop(1, '#0f1119');
+      ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = '#24324c';
-      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = '#3b4254';
+      ctx.lineWidth = 1.4;
       ctx.stroke();
     }
+
+    // Glossy 3D acrylic top bevel sheen on every tile
+    ctx.fillStyle = cell.opened || cell.inBingoLine ? 'rgba(255, 250, 230, 0.22)' : 'rgba(255, 255, 255, 0.08)';
+    this.roundedRectPath(ctx, x + 2.5, y + 2.5, w - 5, h * 0.34, 4);
+    ctx.fill();
+
+    // Inner lower rim shadow for physical button/tile depth
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x + 4, y + h - 1.5);
+    ctx.lineTo(x + w - 4, y + h - 1.5);
+    ctx.stroke();
 
     const cx = x + w / 2;
     const cy = y + h / 2 - (cell.reigniteCount > 0 ? 4 : 0);
 
     if (cell.isFree) {
-      ctx.fillStyle = '#ffd000';
-      ctx.font = '700 14px "Chakra Petch", sans-serif';
+      ctx.fillStyle = '#fde047';
+      ctx.font = '800 14px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('FREE', cx, cy);
     } else {
       ctx.fillStyle = cell.inBingoLine
-        ? '#fffbeb'
+        ? '#ffffff'
         : cell.opened
-          ? '#e0f2fe'
+          ? '#fffbeb'
           : cell.inReachLine
             ? '#fde68a'
-            : '#dbeafe';
+            : '#e2e8f0';
       ctx.font = '700 20px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1605,14 +1808,14 @@ export class CanvasRenderer {
     }
 
     if (cell.reigniteCount > 0) {
-      ctx.fillStyle = '#ffb800';
-      ctx.font = '700 9px "Chakra Petch", sans-serif';
+      ctx.fillStyle = '#fde047';
+      ctx.font = '800 9px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(`+RE x${cell.reigniteCount}`, cx, y + h - 10);
     } else if (cell.inReachLine && !cell.opened) {
-      ctx.fillStyle = '#ffb800';
-      ctx.font = '700 8.5px "Chakra Petch", sans-serif';
+      ctx.fillStyle = '#fda4af';
+      ctx.font = '800 8.5px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('REACH', cx, y + h - 9);

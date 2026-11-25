@@ -1,15 +1,17 @@
 :root {
-  --bg-obsidian: #070a12;
-  --bg-gunmetal: #0d1424;
-  --bg-chassis: #131d33;
-  --border-steel: #23324d;
-  --cyan: #00f0ff;
-  --gold: #ffb800;
-  --gold-bright: #ffd000;
-  --crimson: #ff2a5f;
-  --emerald: #00ff88;
-  --ice: #f1f5f9;
-  --muted: #94a3b8;
+  --bg-obsidian: #0d090f;
+  --bg-gunmetal: #191520;
+  --bg-chassis: #251e2b;
+  --border-steel: #4a3d4f;
+  --brass: #d99b26;
+  --brass-bright: #fde047;
+  --cyan: #f5b942;
+  --gold: #f59e0b;
+  --gold-bright: #fde047;
+  --crimson: #e11d48;
+  --emerald: #10b981;
+  --ice: #fffbeb;
+  --muted: #cbd5e1;
 
   --font-display: 'Orbitron', 'Chakra Petch', sans-serif;
   --font-ui: 'Chakra Petch', 'M PLUS 1p', sans-serif;
@@ -50,14 +52,14 @@ input {
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 25%, #111b31 0%, var(--bg-obsidian) 70%);
+  background: radial-gradient(circle at 50% 18%, #261422 0%, #120c15 58%, #09070c 100%);
 }
 
-/* Subtle metallic scanline surface texture on cabinet panels */
+/* Brushed lacquered metallic pachinko cabinet panels */
 .cabinet-left-panel,
 .cabinet-right-panel,
 .arcade-modal {
-  background: linear-gradient(165deg, var(--bg-chassis) 0%, var(--bg-gunmetal) 60%, #090f1c 100%);
+  background: linear-gradient(175deg, #272230 0%, #17141f 48%, #100d15 100%);
   contain: layout paint;
 }
 
@@ -135,17 +137,19 @@ input {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: border-color 0.16s, color 0.16s, transform 0.12s;
 }
 
 .icon-toggle-btn.is-on {
-  border-color: rgba(0, 240, 255, 0.6);
-  color: var(--cyan);
+  border-color: rgba(245, 185, 66, 0.65);
+  color: var(--gold-bright);
 }
 
 .icon-toggle-btn:hover {
   transform: translateY(-1px);
-  border-color: var(--cyan);
+  border-color: var(--gold-bright);
 }
 
 .icon-toggle-btn.compact {
@@ -187,7 +191,7 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 0 14px rgba(0, 240, 255, 0.45));
+  filter: drop-shadow(0 0 14px rgba(245, 185, 66, 0.45));
 }
 
 .title-text-group {
@@ -1652,6 +1656,31 @@ input {
 
 /* ==================== TITLE MOBILE BREAKPOINT (< 720px) ==================== */
 @media (max-width: 719px) {
+  .title-top-bar {
+    gap: 6px;
+  }
+
+  .title-cabinet-tag {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    padding: 5px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 146px;
+  }
+
+  .audio-toggles-cluster {
+    gap: 5px;
+  }
+
+  .title-top-bar .icon-toggle-btn {
+    padding: 5px 7px;
+    font-size: 10px;
+    gap: 4px;
+    letter-spacing: 0.02em;
+  }
+
   .title-brand-lockup {
     flex-direction: column;
     gap: 12px;
@@ -2143,3 +2172,606 @@ input {
     width: 56px;
   }
 }
+
+/* ============================================================================
+   COMMERCIAL JAPANESE PACHINKO CABINET HARDWARE & 3D TACTILE BUTTON SKIN
+   ============================================================================ */
+
+/* --- Metallic Cabinet Bezels & Recessed LED Displays --- */
+.cabinet-left-panel,
+.cabinet-right-panel {
+  border: 2px solid #594730;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 236, 179, 0.25),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.65),
+    0 10px 26px rgba(0, 0, 0, 0.65);
+}
+
+.canvas-frame {
+  border-radius: 16px;
+  padding: 5px;
+  background: linear-gradient(145deg, #d8b268 0%, #6b4e23 22%, #241b1e 50%, #7d5b28 78%, #f3d58d 100%);
+  border: 1.5px solid rgba(253, 224, 71, 0.65);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.8),
+    0 14px 32px rgba(0, 0, 0, 0.72);
+}
+
+.score-cabinet-box,
+.relic-rack-box,
+.magazine-box,
+.pin-legend-box,
+.stroke-controller-box {
+  background: linear-gradient(180deg, #1d1826 0%, #110e18 100%);
+  border: 1.5px solid #594734;
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 226, 150, 0.16);
+}
+
+.mult-display-box,
+.cardlv-display-box,
+.next-ball-showcase,
+.relic-tooltip,
+.pin-chip,
+.shop-relics-strip,
+.bbp-instruction {
+  background: #14101c;
+  border-color: #463a4f;
+}
+
+.ghost-back-btn,
+.shop-reroll-btn {
+  background: linear-gradient(180deg, #322b3d 0%, #1c1824 100%);
+  border: 1.5px solid #635547;
+  color: #fde68a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 3px 0 #0a080e;
+}
+
+.ghost-back-btn:active,
+.shop-reroll-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0a080e;
+}
+
+.giant-score-readout {
+  color: #fffbeb;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+}
+
+.giant-mult-readout {
+  color: #fb7185;
+  text-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
+}
+
+.stage-badge {
+  background: linear-gradient(180deg, #fde047 0%, #d97706 100%);
+  color: #1f1103;
+  border: 1px solid #fef3c7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 2px 0 #78350f;
+}
+
+/* --- Commercial 3D Beveled Title Screen Hardware --- */
+.title-cabinet-tag {
+  background: linear-gradient(180deg, #2d232b 0%, #171219 100%);
+  border: 1.5px solid #b48332;
+  color: #fde68a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 196, 0.35),
+    0 3px 8px rgba(0, 0, 0, 0.55);
+}
+
+.title-jp-kicker {
+  color: #fde047;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.title-main-heading {
+  color: #fffbeb;
+  text-shadow:
+    0 3px 0 #78350f,
+    0 6px 18px rgba(0, 0, 0, 0.85);
+}
+
+.title-loop-strip {
+  background: linear-gradient(180deg, rgba(33, 24, 34, 0.94) 0%, rgba(16, 12, 19, 0.96) 100%);
+  border: 1.5px solid #8c6628;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 163, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.65);
+}
+
+/* --- Tactile 3D Arcade Push-Buttons (Primary / Secondary / Ghost) --- */
+.cta-primary-btn {
+  background: linear-gradient(180deg, #ff5f6d 0%, #e11d48 52%, #9f1239 100%);
+  color: #fffbeb;
+  border: 1.5px solid #fda4af;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(136, 19, 55, 0.7),
+    0 4px 0 #6b0f27,
+    0 8px 18px rgba(0, 0, 0, 0.55);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+}
+
+.cta-primary-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.cta-primary-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.35),
+    0 1px 0 #6b0f27;
+}
+
+.cta-primary-btn .cta-sub-tag {
+  background: rgba(15, 7, 12, 0.45);
+  color: #fde68a;
+  border: 1px solid rgba(253, 224, 71, 0.45);
+}
+
+.cta-secondary-btn {
+  background: linear-gradient(180deg, #f5b942 0%, #b45309 58%, #78350f 100%);
+  color: #fffbeb;
+  border: 1.5px solid #fef08a;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.48),
+    0 4px 0 #451a03,
+    0 8px 16px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+}
+
+.cta-secondary-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.cta-secondary-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.35),
+    0 1px 0 #451a03;
+}
+
+.cta-secondary-btn .cta-sub-tag {
+  background: rgba(24, 12, 4, 0.48);
+  color: #fffbeb;
+  border: 1px solid rgba(254, 240, 138, 0.45);
+}
+
+.cta-secondary-btn.cyan,
+.cta-secondary-btn.cyan-outline {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 60%, #0f172a 100%);
+  border-color: #94a3b8;
+  color: #f8fafc;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    0 4px 0 #020617;
+}
+
+.cta-primary-btn.end-victory-cta {
+  background: linear-gradient(180deg, #34d399 0%, #059669 55%, #065f46 100%);
+  border-color: #a7f3d0;
+  color: #022c22;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.55),
+    0 4px 0 #022c22;
+}
+
+.cta-ghost-btn {
+  background: linear-gradient(180deg, #2b2533 0%, #191521 100%);
+  border: 1.5px solid #594d63;
+  color: #e2e8f0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 3px 0 #0b090f;
+}
+
+.cta-ghost-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0b090f;
+}
+
+/* --- Tactile 3D Chrome Hardware Toggle & Utility Buttons --- */
+.icon-toggle-btn {
+  background: linear-gradient(180deg, #383242 0%, #201c28 58%, #15121b 100%);
+  border: 1.5px solid #6b5d47;
+  color: #cbd5e1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 0 #0a080d;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.icon-toggle-btn.is-on {
+  background: linear-gradient(180deg, #4b3922 0%, #2d2112 60%, #1d150b 100%);
+  border-color: #f5b942;
+  color: #fde68a;
+}
+
+.icon-toggle-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0a080d;
+}
+
+/* --- Aim Presets, Lock Toggle, & Iconic Pachinko PUSH Launch Button --- */
+.aim-preset-btn {
+  background: linear-gradient(180deg, #3a3444 0%, #24202c 52%, #18151e 100%);
+  border: 1.5px solid #5c5368;
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 3px 0 #0c0a10;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.aim-preset-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0c0a10;
+}
+
+.aim-preset-btn.is-active {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 58%, #92400e 100%);
+  border-color: #fef3c7;
+  color: #1c0f02;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 3px 0 #451a03;
+}
+
+.lock-stroke-btn {
+  background: linear-gradient(180deg, #353040 0%, #1e1b26 60%, #131118 100%);
+  border: 1.5px solid #635870;
+  color: #e2e8f0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 0 #0a080e;
+}
+
+.lock-stroke-btn.is-locked {
+  background: linear-gradient(180deg, #10b981 0%, #047857 60%, #064e3b 100%);
+  border-color: #a7f3d0;
+  color: #ecfdf5;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
+    0 3px 0 #022c22;
+}
+
+.lock-stroke-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0a080e;
+}
+
+/* Iconic Jewel-Glossy Crimson-Gold Pachinko PUSH Button (発射ボタン) */
+.launch-main-btn {
+  position: relative;
+  background: radial-gradient(circle at 50% 24%, #ff8a65 0%, #ef4444 38%, #b91c1c 78%, #7f1d1d 100%);
+  border: 2.5px solid #fde047;
+  border-radius: 12px;
+  color: #fffbeb;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.65);
+  box-shadow:
+    inset 0 3px 2px rgba(255, 255, 255, 0.55),
+    inset 0 -3px 5px rgba(69, 10, 10, 0.75),
+    0 4px 0 #5c0b16,
+    0 6px 14px rgba(0, 0, 0, 0.6);
+  transition: transform 0.07s ease, box-shadow 0.07s ease, filter 0.1s ease;
+}
+
+.launch-main-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.launch-main-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 1px 0 #5c0b16;
+}
+
+.launch-main-btn:disabled {
+  background: linear-gradient(180deg, #332e3b 0%, #1e1b24 100%);
+  border-color: #524b5e;
+  color: #94a3b8;
+  box-shadow: 0 2px 0 #0c0a0f;
+}
+
+/* Tactile Chrome-Gold Power & Volume Range Sliders */
+.arcade-range,
+.power-range-slider,
+.volume-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 52%, #e11d48 100%);
+  border: 1.5px solid #6b573b;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.65);
+  outline: none;
+  cursor: pointer;
+}
+
+.arcade-range::-webkit-slider-thumb,
+.power-range-slider::-webkit-slider-thumb,
+.volume-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffffff 0%, #e2e8f0 45%, #64748b 100%);
+  border: 2.5px solid #fde047;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.arcade-range::-moz-range-thumb,
+.power-range-slider::-moz-range-thumb,
+.volume-range-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffffff 0%, #e2e8f0 45%, #64748b 100%);
+  border: 2.5px solid #fde047;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+/* --- Pachinko Shop & Modals (Lacquered Gold Cabinet Plaques) --- */
+.arcade-modal,
+.shop-panel {
+  background: linear-gradient(180deg, #231d2b 0%, #15111c 55%, #0e0b13 100%);
+  border: 2px solid #b48332;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 186, 0.3),
+    0 18px 42px rgba(0, 0, 0, 0.8);
+}
+
+.shop-offer-card {
+  background: linear-gradient(180deg, #272130 0%, #16121d 100%);
+  border: 1.5px solid #4c3e54;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.offer-buy-btn {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 62%, #92400e 100%);
+  border: 1.5px solid #fef08a;
+  color: #1c0f02;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 3px 0 #451a03;
+}
+
+.offer-buy-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #451a03;
+}
+
+.offer-buy-btn:disabled {
+  background: linear-gradient(180deg, #27232e 0%, #19161f 100%);
+  border-color: #3d3647;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.shop-tab-btn {
+  background: linear-gradient(180deg, #2e2738 0%, #1b1722 100%);
+  border: 1.5px solid #4c415c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 0 #0a080e;
+}
+
+.shop-tab-btn.is-active {
+  background: linear-gradient(180deg, #4f3615 0%, #2c1d0a 100%);
+  border-color: #f5b942;
+  color: #fde68a;
+}
+
+/* --- Mobile Pachinko Data Counter (データランプ) & Lower Ball Tray --- */
+@media (max-width: 959px) {
+  .mobile-marquee {
+    background: linear-gradient(180deg, #2a2433 0%, #17131e 55%, #100d15 100%);
+    border: 1.5px solid #a87e34;
+    border-radius: 11px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 236, 179, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.65);
+  }
+
+  .mm-stage-badge {
+    background: linear-gradient(180deg, #fde047 0%, #d97706 100%);
+    color: #1f1002;
+    border: 1px solid #fef3c7;
+    box-shadow: 0 2px 0 #78350f;
+  }
+
+  .mm-relics-btn,
+  .mm-sound-btn,
+  .mm-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1.5px solid #6b5b47;
+    background: linear-gradient(180deg, #3b3345 0%, #211c29 60%, #16131c 100%);
+    color: #fde68a;
+    font-family: var(--font-jp);
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 2px 0 #0a080d;
+  }
+
+  .mm-sound-btn.is-on {
+    border-color: #d99b26;
+    color: #fffbeb;
+  }
+
+  .mm-home-btn {
+    color: #cbd5e1;
+    border-color: #544b61;
+  }
+
+  .mm-relics-btn:active,
+  .mm-sound-btn:active,
+  .mm-home-btn:active {
+    transform: translateY(1.5px);
+    box-shadow: 0 1px 0 #0a080d;
+  }
+
+  .mm-score-row-bar {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #09080e;
+    border: 1px solid #3c3242;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .mm-target-val,
+  .mm-slash {
+    color: #fbbf24;
+  }
+
+  .mm-progress-fill {
+    background: linear-gradient(90deg, #f59e0b, #fde047, #34d399);
+  }
+
+  .stroke-controller-box {
+    background: linear-gradient(180deg, #292231 0%, #17131e 52%, #0e0b13 100%);
+    border: 1.5px solid #96702f;
+    border-radius: 12px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 236, 179, 0.25),
+      0 -3px 12px rgba(0, 0, 0, 0.55);
+  }
+
+  .mcb-ball-pill {
+    background: linear-gradient(180deg, #312a3b 0%, #191521 100%);
+    border: 1.5px solid #6b5b47;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 3px 0 #0a080e;
+  }
+
+  .mcb-ball-pill:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0a080e;
+  }
+}
+
+/* --- Global Sound Volume Mixer Popover --- */
+.sound-mixer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(6, 4, 10, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.sound-mixer-card {
+  width: min(360px, 100%);
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #272030 0%, #16121d 100%);
+  border: 2px solid #c99438;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 186, 0.35),
+    0 18px 40px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.smc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #473a4f;
+}
+
+.smc-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fde68a;
+}
+
+.smc-row {
+  display: grid;
+  grid-template-columns: 74px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.smc-mute-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1.5px solid #594d66;
+  background: linear-gradient(180deg, #322b3d 0%, #1b1723 100%);
+  color: #94a3b8;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 0 #0a080d;
+}
+
+.smc-mute-btn.is-on {
+  border-color: #f5b942;
+  background: linear-gradient(180deg, #4b381e 0%, #291d0e 100%);
+  color: #fde68a;
+}
+
+.smc-pct {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: #fffbeb;
+  text-align: right;
+}
+
+.volume-range-slider {
+  width: 100%;
+  background: linear-gradient(90deg, #475569 0%, #f59e0b 55%, #fde047 100%);
+}
+
+.mrp-close {
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1.5px solid #786448;
+  background: linear-gradient(180deg, #3b3345 0%, #201c28 100%);
+  color: #fffbeb;
+  font-family: var(--font-jp);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 2px 0 #0a080e;
+}
+
+.mrp-close:active {
+  transform: translateY(1.5px);
+  box-shadow: 0 1px 0 #0a080e;
+}
+

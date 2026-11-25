@@ -177,21 +177,64 @@ export class UIController {
   private bindEvents(): void {
     const unlockGesture = () => this.sound.unlock();
     window.addEventListener('pointerdown', unlockGesture, { passive: true });
+    window.addEventListener('touchend', unlockGesture, { passive: true });
     window.addEventListener('keydown', unlockGesture, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.sound.unlock();
+      }
+    });
 
-    // Audio toggles (Title, Desktop HUD, Mobile Marquee)
-    ['btn-toggle-bgm', 'btn-toggle-bgm-title', 'btn-toggle-bgm-mobile'].forEach((id) => {
+    // Audio toggles (Title, Desktop HUD, Sound Mixer)
+    ['btn-toggle-bgm', 'btn-toggle-bgm-title', 'btn-mixer-bgm'].forEach((id) => {
       document.getElementById(id)?.addEventListener('click', () => {
         this.sound.toggleBgm();
         this.syncAudioButtons();
       });
     });
 
-    ['btn-toggle-se', 'btn-toggle-se-title', 'btn-toggle-se-mobile'].forEach((id) => {
+    ['btn-toggle-se', 'btn-toggle-se-title', 'btn-mixer-se'].forEach((id) => {
       document.getElementById(id)?.addEventListener('click', () => {
         this.sound.toggleSe();
         this.syncAudioButtons();
       });
+    });
+
+    // Global Sound Volume Mixer Popover
+    const mixerOverlay = this.q('sound-mixer-popover');
+    const toggleMixer = () => {
+      this.sound.unlock();
+      this.sound.playUiClick(720);
+      this.q('mobile-relic-popover').classList.add('is-hidden');
+      this.q('mobile-ball-popover').classList.add('is-hidden');
+      mixerOverlay.classList.toggle('is-hidden');
+      this.syncAudioButtons();
+    };
+    ['btn-sound-mixer-title', 'btn-sound-mixer-desktop', 'btn-sound-mixer-mobile'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('click', toggleMixer);
+    });
+    this.q('btn-close-sound-mixer').addEventListener('click', () => {
+      this.sound.playUiClick(540);
+      mixerOverlay.classList.add('is-hidden');
+    });
+    mixerOverlay.addEventListener('click', (e) => {
+      if (e.target === mixerOverlay) {
+        mixerOverlay.classList.add('is-hidden');
+      }
+    });
+
+    const bgmSlider = this.q<HTMLInputElement>('slider-bgm-vol');
+    bgmSlider.addEventListener('input', () => {
+      const v = Math.max(0, Math.min(100, Number(bgmSlider.value) || 0)) / 100;
+      this.sound.setBgmVolume(v);
+      this.syncAudioButtons();
+    });
+
+    const seSlider = this.q<HTMLInputElement>('slider-se-vol');
+    seSlider.addEventListener('input', () => {
+      const v = Math.max(0, Math.min(100, Number(seSlider.value) || 0)) / 100;
+      this.sound.setSeVolume(v, true);
+      this.syncAudioButtons();
     });
 
     // Title buttons
@@ -592,22 +635,43 @@ export class UIController {
   private syncAudioButtons(): void {
     const bgmOn = this.sound.isBgmEnabled();
     const seOn = this.sound.isSeEnabled();
+    const bgmPct = bgmOn ? Math.round(this.sound.getBgmVolume() * 100) : 0;
+    const sePct = seOn ? Math.round(this.sound.getSeVolume() * 100) : 0;
 
-    ['btn-toggle-bgm', 'btn-toggle-bgm-title', 'btn-toggle-bgm-mobile'].forEach((id) => {
+    ['btn-toggle-bgm', 'btn-toggle-bgm-title', 'btn-mixer-bgm'].forEach((id) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.classList.toggle('is-on', bgmOn);
       const slot = btn.querySelector('.icon-slot');
-      if (slot) slot.innerHTML = getUiIconSvg(bgmOn ? 'bgmOn' : 'bgmOff', 17);
+      if (slot) slot.innerHTML = getUiIconSvg(bgmOn ? 'bgmOn' : 'bgmOff', 16);
     });
 
-    ['btn-toggle-se', 'btn-toggle-se-title', 'btn-toggle-se-mobile'].forEach((id) => {
+    ['btn-toggle-se', 'btn-toggle-se-title', 'btn-mixer-se'].forEach((id) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.classList.toggle('is-on', seOn);
       const slot = btn.querySelector('.icon-slot');
-      if (slot) slot.innerHTML = getUiIconSvg(seOn ? 'seOn' : 'seOff', 17);
+      if (slot) slot.innerHTML = getUiIconSvg(seOn ? 'seOn' : 'seOff', 16);
     });
+
+    const anyOn = bgmOn || seOn;
+    ['btn-sound-mixer-title', 'btn-sound-mixer-desktop', 'btn-sound-mixer-mobile'].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.classList.toggle('is-on', anyOn);
+      const slot = btn.querySelector('.icon-slot');
+      if (slot) slot.innerHTML = getUiIconSvg(anyOn ? 'seOn' : 'seOff', 15);
+    });
+
+    const bgmSlider = document.getElementById('slider-bgm-vol') as HTMLInputElement | null;
+    if (bgmSlider) bgmSlider.value = String(bgmPct);
+    const bgmPctEl = document.getElementById('bgm-vol-pct');
+    if (bgmPctEl) bgmPctEl.textContent = `${bgmPct}%`;
+
+    const seSlider = document.getElementById('slider-se-vol') as HTMLInputElement | null;
+    if (seSlider) seSlider.value = String(sePct);
+    const sePctEl = document.getElementById('se-vol-pct');
+    if (sePctEl) sePctEl.textContent = `${sePct}%`;
   }
 
   private updateTitleHighScore(): void {
@@ -639,7 +703,7 @@ export class UIController {
 
       this.q('hud-power-pct').textContent = `${pct}%`;
       this.q('hud-stroke-route').textContent = routeText;
-      this.q('mcb-route-lbl').textContent = routeText;
+      this.q('mcb-route-lbl').textContent = this.getStrokeRouteName(state.launchPower);
 
       const rotary = this.q('rotary-handle-visual');
       const deg = (state.launchPower - 0.5) * 230;

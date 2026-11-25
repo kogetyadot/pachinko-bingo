@@ -131,6 +131,15 @@ async function run() {
     await assertInViewport(page, '#btn-launch', desktopVp, 'Desktop Gameplay');
     await page.screenshot({ path: path.join(OUT_DIR, '02_gameplay_desktop_initial.png') });
 
+    // Verify Desktop Sound Mixer popover & close button
+    await page.click('#btn-sound-mixer-desktop');
+    await page.waitForTimeout(200);
+    await assertInViewport(page, '#slider-bgm-vol', desktopVp, 'Desktop Sound Mixer');
+    await assertInViewport(page, '#btn-close-sound-mixer', desktopVp, 'Desktop Sound Mixer');
+    await page.screenshot({ path: path.join(OUT_DIR, '14_sound_mixer_desktop.png') });
+    await page.click('#btn-close-sound-mixer');
+    await page.waitForTimeout(150);
+
     // Fire several shots at varied launch powers (Left, Bukkomi, Right-Hit)
     for (const pwr of [0.24, 0.48, 0.86]) {
       await page.evaluate((p) => {
@@ -251,6 +260,18 @@ async function run() {
     await mPage.tap(mobileLaunchSelector);
     await mPage.waitForTimeout(550);
     await mPage.screenshot({ path: path.join(OUT_DIR, '10_gameplay_mobile.png') });
+
+    // Verify Sound Volume Mixer Popover & Sliders on Mobile
+    await mPage.tap('#btn-sound-mixer-mobile');
+    await mPage.waitForTimeout(250);
+    await assertInViewport(mPage, '#slider-bgm-vol', mobileVp, 'Mobile Sound Mixer');
+    await assertInViewport(mPage, '#slider-se-vol', mobileVp, 'Mobile Sound Mixer');
+    await mPage.locator('#slider-bgm-vol').fill('40');
+    await mPage.locator('#slider-se-vol').fill('50');
+    await mPage.waitForTimeout(150);
+    await mPage.screenshot({ path: path.join(OUT_DIR, '13_sound_mixer_mobile.png') });
+    await mPage.tap('#btn-close-sound-mixer');
+    await mPage.waitForTimeout(200);
 
     // Mobile Shop verification
     await mPage.evaluate(() => {

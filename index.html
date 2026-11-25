@@ -8,13 +8,13 @@
     />
     <meta
       name="description"
-      content="NEON BINGO CRASHER — 電撃パチンコ・ビンゴ。釘カスタム×玉ビルド×OVERDRIVE連鎖のサイバーアーケード・ローグライク！"
+      content="CR 電撃パチンコ・ビンゴ (PACHINKO BINGO CRASHER) — 真鍮釘×銀玉物理×5×5ビンゴ×OVERDRIVE連鎖の本格パチンコ・ローグライト！"
     />
-    <title>NEON BINGO CRASHER — 電撃パチンコ・ビンゴ</title>
+    <title>CR 電撃パチンコ・ビンゴ // PACHINKO BINGO CRASHER</title>
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpolygon points='32,3 57,17 57,47 32,61 7,47 7,17' fill='%23070a12' stroke='%2300f0ff' stroke-width='4'/%3E%3Cpolygon points='35,14 20,34 31,34 27,50 44,29 33,29' fill='%23ffb800'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%2324141d' stroke='%23f5b942' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23cbd5e1' stroke='%2378350f' stroke-width='2'/%3E%3Ccircle cx='27' cy='26' r='5' fill='%23ffffff'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -41,8 +41,18 @@
         <div class="title-vignette"></div>
 
         <div class="title-top-bar">
-          <div class="title-cabinet-tag">OVERDRIVE EDITION</div>
+          <div class="title-cabinet-tag">CR PACHINKO BINGO // OVERDRIVE</div>
           <div class="audio-toggles-cluster">
+            <button
+              id="btn-sound-mixer-title"
+              class="icon-toggle-btn sound-mixer-trigger is-on"
+              type="button"
+              aria-label="音量設定"
+              title="BGM・効果音の音量調整"
+            >
+              <span class="icon-slot" data-icon="se"></span>
+              <span class="toggle-lbl">音量</span>
+            </button>
             <button
               id="btn-toggle-bgm-title"
               class="icon-toggle-btn is-on"
@@ -70,25 +80,25 @@
           <div class="title-brand-lockup">
             <div id="title-brand-emblem" class="title-emblem"></div>
             <div class="title-text-group">
-              <p class="title-jp-kicker">電撃パチンコ・ビンゴ</p>
-              <h1 class="title-main-heading">NEON BINGO CRASHER</h1>
+              <p class="title-jp-kicker">CR 電撃パチンコ・ビンゴ</p>
+              <h1 class="title-main-heading">PACHINKO BINGO CRASHER</h1>
             </div>
           </div>
 
           <div class="title-loop-strip" aria-label="ゲーム概要">
             <div class="loop-step">
               <span class="loop-icon" data-icon="aimTarget"></span>
-              <span class="loop-label">1. 狙って撃つ</span>
+              <span class="loop-label">1. ストローク調整で狙い撃ち</span>
             </div>
             <span class="loop-arrow" data-icon="chevronRight"></span>
             <div class="loop-step">
               <span class="loop-icon" data-icon="bingoGrid"></span>
-              <span class="loop-label">2. ポケットでBINGO開放</span>
+              <span class="loop-label">2. 入賞口でBINGOパネル開放</span>
             </div>
             <span class="loop-arrow" data-icon="chevronRight"></span>
             <div class="loop-step">
               <span class="loop-icon" data-icon="overdriveCore"></span>
-              <span class="loop-label">3. 改造×OVERDRIVEで超インフレ</span>
+              <span class="loop-label">3. 釘改造×OVERDRIVEで大爆発</span>
             </div>
           </div>
 
@@ -115,7 +125,7 @@
 
       <!-- ==================== CABINET GAMEPLAY SHELL ==================== -->
       <div id="cabinet-shell" class="cabinet-shell is-hidden">
-        <!-- Mobile Compact Top Arcade Marquee (< 960px) -->
+        <!-- Mobile Compact Top Pachinko Data Lamp (< 960px) -->
         <header id="mobile-marquee" class="mobile-marquee">
           <div class="mm-top-row">
             <div class="mm-status-left">
@@ -136,20 +146,13 @@
                 <strong id="mm-relics-count">0/6</strong>
               </button>
               <button
-                id="btn-toggle-bgm-mobile"
-                class="icon-toggle-btn compact is-on"
+                id="btn-sound-mixer-mobile"
+                class="mm-sound-btn"
                 type="button"
-                aria-label="BGM切替"
-              >
-                <span class="icon-slot" data-icon="bgm"></span>
-              </button>
-              <button
-                id="btn-toggle-se-mobile"
-                class="icon-toggle-btn compact is-on"
-                type="button"
-                aria-label="SE切替"
+                aria-label="音量調整"
               >
                 <span class="icon-slot" data-icon="se"></span>
+                <span>音量</span>
               </button>
               <button
                 id="btn-mobile-title"
@@ -203,24 +206,32 @@
             <div id="hud-stage-badge" class="stage-badge">STAGE 1 / 8</div>
             <div class="audio-toggles-cluster">
               <button
+                id="btn-sound-mixer-desktop"
+                class="icon-toggle-btn sound-mixer-trigger is-on"
+                type="button"
+                aria-label="音量設定"
+                title="BGM・効果音の音量バー"
+              >
+                <span class="icon-slot" data-icon="se"></span>
+                <span class="toggle-lbl">音量</span>
+              </button>
+              <button
                 id="btn-toggle-bgm"
-                class="icon-toggle-btn is-on"
+                class="icon-toggle-btn compact is-on"
                 type="button"
                 aria-label="BGM切替"
                 title="BGM ON/OFF"
               >
                 <span class="icon-slot" data-icon="bgm"></span>
-                <span class="toggle-lbl">BGM</span>
               </button>
               <button
                 id="btn-toggle-se"
-                class="icon-toggle-btn is-on"
+                class="icon-toggle-btn compact is-on"
                 type="button"
                 aria-label="効果音切替"
                 title="SE ON/OFF"
               >
                 <span class="icon-slot" data-icon="se"></span>
-                <span class="toggle-lbl">SE</span>
               </button>
             </div>
           </div>
@@ -594,6 +605,50 @@
           </div>
         </div>
       </section>
+
+      <!-- ==================== GLOBAL SOUND VOLUME MIXER ==================== -->
+      <div id="sound-mixer-popover" class="sound-mixer-overlay is-hidden" role="dialog" aria-label="音量設定">
+        <div class="sound-mixer-card">
+          <div class="smc-header">
+            <span class="smc-title">SOUND MIXER // 音量設定</span>
+            <button id="btn-close-sound-mixer" class="mrp-close" type="button">閉じる</button>
+          </div>
+
+          <div class="smc-row">
+            <button id="btn-mixer-bgm" class="smc-mute-btn is-on" type="button" aria-label="BGMミュート">
+              <span class="icon-slot" data-icon="bgm"></span>
+              <span>BGM</span>
+            </button>
+            <input
+              id="slider-bgm-vol"
+              class="volume-range-slider"
+              type="range"
+              min="0"
+              max="100"
+              value="28"
+              aria-label="BGM音量"
+            />
+            <span id="bgm-vol-pct" class="smc-pct">28%</span>
+          </div>
+
+          <div class="smc-row">
+            <button id="btn-mixer-se" class="smc-mute-btn is-on" type="button" aria-label="SEミュート">
+              <span class="icon-slot" data-icon="se"></span>
+              <span>SE</span>
+            </button>
+            <input
+              id="slider-se-vol"
+              class="volume-range-slider"
+              type="range"
+              min="0"
+              max="100"
+              value="35"
+              aria-label="効果音音量"
+            />
+            <span id="se-vol-pct" class="smc-pct">35%</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="./src/main.ts"></script>
