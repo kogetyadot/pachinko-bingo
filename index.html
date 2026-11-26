@@ -236,6 +236,14 @@
             </div>
           </div>
 
+          <div id="hud-stage-modifier" class="stage-modifier-plaque">
+            <div class="mod-top-row">
+              <span id="hud-modifier-tag" class="mod-kicker">台コンディション</span>
+              <strong id="hud-modifier-name" class="mod-name">標準台</strong>
+            </div>
+            <div id="hud-modifier-desc" class="mod-desc">狙いの列に落としてBINGOを揃えよう！</div>
+          </div>
+
           <div class="score-cabinet-box">
             <div class="score-box-header">
               <span class="cabinet-kicker">SCORE</span>
@@ -294,6 +302,12 @@
 
         <!-- Center Playfield Bezel -->
         <main class="playfield-bezel cabinet-center-stage">
+          <!-- Mobile 1-Line Illuminated Stage Modifier / First-Play Micro-Coach Strip -->
+          <div id="mobile-stage-tip" class="mobile-stage-tip">
+            <span id="mobile-tip-badge" class="mst-badge">初回ガイド</span>
+            <span id="mobile-tip-text" class="mst-text">ヒント：下のバーで狙いを決めて「発射」を押してみよう！</span>
+          </div>
+
           <!-- Board Customization Prompt Bar placed cleanly above Canvas Frame -->
           <div id="board-tune-banner" class="board-tune-banner is-hidden">
             <div class="btb-info">
@@ -452,6 +466,11 @@
             </div>
           </div>
 
+          <div id="clear-next-modifier" class="next-stage-mod-banner">
+            <span class="nsm-kicker">次ステージ台特性</span>
+            <span id="clear-next-mod-text" class="nsm-text">標準台 — 狙いの列に落としてBINGOを揃えよう！</span>
+          </div>
+
           <button id="btn-goto-shop" class="cta-primary-btn full" type="button">
             <span class="cta-icon" data-icon="chevronRight"></span>
             <span class="cta-text">強化ショップ＆盤面改造へ進む</span>
@@ -476,6 +495,11 @@
               <strong id="shop-medals">¥0</strong>
             </div>
           </header>
+
+          <div id="shop-next-modifier" class="shop-next-mod-strip">
+            <span class="snm-kicker">次ステージ台特性</span>
+            <span id="shop-next-mod-text" class="snm-text">標準台 — 狙いの列に落としてBINGOを揃えよう！</span>
+          </div>
 
           <nav class="shop-tabs" role="tablist">
             <button

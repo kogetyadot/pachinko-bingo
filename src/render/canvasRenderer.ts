@@ -2,6 +2,8 @@ import {
   ALL_BINGO_LINES,
   BALL_CATALOG,
   PIN_CATALOG,
+  POCKET_LABELS,
+  formatMult,
   formatScore,
 } from '../data/catalog';
 import {
@@ -11,10 +13,19 @@ import {
   GameStateSnapshot,
   IGameEngine,
   PinEntity,
+  PinKind,
   PocketState,
   TrailPoint,
   WORLD,
 } from '../types';
+
+const PIN_INSPECT_TEXT: Record<Exclude<PinKind, 'NORMAL'>, string> = {
+  SPLITTER: '三連プリズム釘：当たると玉が3分裂！',
+  BUMPER: '高圧バンパー：強反発＆基礎チップ +75！',
+  SPINNER: '倍率スピナー：通過で玉の倍率 ×1.4！',
+  BOMB_PIN: '爆縮イグナイタ：当たった玉をボム球化！',
+  MAGNET: 'リーチ誘導コア：リーチ・覚醒列へ誘導！',
+};
 
 interface Particle {
   x: number;
@@ -25,6 +36,10 @@ interface Particle {
   maxLife: number;
   size: number;
   color: string;
+  kind?: 'SPARK' | 'COIN';
+  spinPhase?: number;
+  spinSpeed?: number;
+  gravity?: number;
 }
 
 interface ShockwaveRing {
@@ -67,7 +82,18 @@ interface FloatingPopup {
   scale: number;
   life: number;
   maxLife: number;
+  priority: 1 | 2 | 3;
 }
+
+interface CutInBanner {
+  title: string;
+  subtitle: string;
+  theme: 'BINGO' | 'OVERDRIVE' | 'FEVER';
+  elapsed: number;
+  duration: number;
+}
+
+const MAX_FLOATING_POPUPS = 8;
 
 export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
@@ -98,12 +124,25 @@ export class CanvasRenderer {
   private beams: LaserBeam[] = [];
   private lineFlashes: LineFlash[] = [];
   private popups: FloatingPopup[] = [];
+  private cutInQueue: CutInBanner[] = [];
+  private activeCutIn: CutInBanner | null = null;
+
+  private reigniteCoalesceCount = 0;
+  private reigniteCoalesceTimer = 0;
+  private reignitePopupRef: FloatingPopup | null = null;
+  private relicProcCooldowns = new Map<string, number>();
 
   private shakeIntensity = 0;
   private flashAlpha = 0;
   private flashColor = '#00f0ff';
 
   private hoveredPinId: number | null = null;
+  private inspectedPinId: number | null = null;
+  private inspectedPinTimer = 0;
+  private predictedTargetCol: number | null = null;
+  private lastChainCount = 0;
+  private chainPopAnim = 0;
+
   private boardTuneHighlight = false;
   private showAimGuide = true;
   private ballGradientCache = new Map<string, CanvasGradient>();
@@ -177,6 +216,11 @@ export class CanvasRenderer {
     this.hoveredPinId = pinId;
   }
 
+  public setInspectedPin(pinId: number | null, duration = 2.8): void {
+    this.inspectedPinId = pinId;
+    this.inspectedPinTimer = pinId !== null ? duration : 0;
+  }
+
   public canvasToWorld(clientX: number, clientY: number): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) {
@@ -208,12 +252,44 @@ export class CanvasRenderer {
     return best;
   }
 
+  public findSpecialPinAt(
+    pins: PinEntity[],
+    worldX: number,
+    worldY: number,
+    maxDist = 24
+  ): PinEntity | null {
+    let best: PinEntity | null = null;
+    let bestDistSq = maxDist * maxDist;
+    for (const pin of pins) {
+      if (pin.kind === 'NORMAL') continue;
+      const dx = pin.x - worldX;
+      const dy = pin.y - worldY;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= bestDistSq) {
+        bestDistSq = d2;
+        best = pin;
+      }
+    }
+    return best;
+  }
+
   public clearVfx(): void {
     this.particles.length = 0;
     this.rings.length = 0;
     this.beams.length = 0;
     this.lineFlashes.length = 0;
     this.popups.length = 0;
+    this.cutInQueue.length = 0;
+    this.activeCutIn = null;
+    this.reigniteCoalesceCount = 0;
+    this.reigniteCoalesceTimer = 0;
+    this.reignitePopupRef = null;
+    this.relicProcCooldowns.clear();
+    this.inspectedPinId = null;
+    this.inspectedPinTimer = 0;
+    this.predictedTargetCol = null;
+    this.lastChainCount = 0;
+    this.chainPopAnim = 0;
     this.shakeIntensity = 0;
     this.flashAlpha = 0;
     if (this.feverVideo && !this.feverVideo.paused) {
@@ -221,7 +297,37 @@ export class CanvasRenderer {
     }
   }
 
+  private enqueueCutIn(banner: Omit<CutInBanner, 'elapsed'>): void {
+    const next: CutInBanner = { ...banner, elapsed: 0 };
+    if (banner.theme === 'FEVER') {
+      // Fever jackpot takes immediate priority
+      this.activeCutIn = next;
+      this.cutInQueue.length = 0;
+      return;
+    }
+    if (!this.activeCutIn) {
+      this.activeCutIn = next;
+      return;
+    }
+    if (this.cutInQueue.length >= 2) {
+      this.cutInQueue.shift();
+    }
+    this.cutInQueue.push(next);
+  }
+
+  private sanitizeScoreText(text: string): string {
+    // Convert any stray scientific notation numbers (e.g. 1.2e+13) into crisp Japanese formatScore()
+    return text.replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => {
+      const parsed = Number(m);
+      return Number.isFinite(parsed) ? formatScore(parsed) : m;
+    });
+  }
+
   public ingestEvents(events: GameEvent[]): void {
+    let frameBingoCount = 0;
+    let frameBingoMaxCombo = 0;
+    let frameBingoTotalScore = 0;
+
     for (const ev of events) {
       switch (ev.type) {
         case 'LAUNCH': {
@@ -234,7 +340,7 @@ export class CanvasRenderer {
           this.spawnParticles(ev.x, ev.y, 7, c, 150, 0.28, 2.3);
           this.spawnRing(ev.x, ev.y, 22, c, 0.22, 2);
           if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 10, ev.text, '', c, 0.78, 0.55);
+            this.spawnPopup(ev.x, ev.y - 10, this.sanitizeScoreText(ev.text), '', c, 0.78, 0.52, 1);
           }
           break;
         }
@@ -243,14 +349,14 @@ export class CanvasRenderer {
           this.spawnParticles(ev.x, ev.y, 20, c, 240, 0.45, 3.2);
           this.spawnRing(ev.x, ev.y, 44, c, 0.34, 3);
           if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 14, ev.text, '', c, 1.0, 0.75);
+            this.spawnPopup(ev.x, ev.y - 14, this.sanitizeScoreText(ev.text), '', c, 0.96, 0.7, 2);
           }
           break;
         }
         case 'BOMB_IGNITE': {
           this.spawnParticles(ev.x, ev.y, 16, '#ff6b00', 200, 0.4, 3);
           this.spawnRing(ev.x, ev.y, 38, '#ff2a5f', 0.3, 2.5);
-          this.spawnPopup(ev.x, ev.y - 14, ev.text ?? 'BOMB!', '', '#ff6b00', 0.95, 0.7);
+          this.spawnPopup(ev.x, ev.y - 14, this.sanitizeScoreText(ev.text ?? 'BOMB!'), '', '#ff6b00', 0.92, 0.68, 2);
           break;
         }
         case 'BOMB_BLAST': {
@@ -261,12 +367,21 @@ export class CanvasRenderer {
           this.addShake(6.5);
           this.triggerFlash('#ff5500', 0.2);
           if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 16, ev.text, ev.subtext ?? '', '#ff8a00', 1.25, 0.95);
+            this.spawnPopup(
+              ev.x,
+              ev.y - 16,
+              this.sanitizeScoreText(ev.text),
+              this.sanitizeScoreText(ev.subtext ?? ''),
+              '#ff8a00',
+              1.18,
+              0.88,
+              3
+            );
           }
           break;
         }
         case 'POCKET_ENTER': {
-          const c = ev.color ?? '#00f0ff';
+          const c = ev.color ?? '#ffb800';
           this.spawnParticles(ev.x, ev.y, 14, c, 200, 0.4, 3);
           this.spawnRing(ev.x, ev.y, 38, c, 0.3, 2.5);
           if (ev.targetX !== undefined && ev.targetY !== undefined) {
@@ -283,23 +398,24 @@ export class CanvasRenderer {
             });
           }
           if (ev.value && ev.value > 0) {
-            const scale = ev.value >= 10000 ? 1.35 : ev.value >= 1500 ? 1.15 : 0.98;
+            const scale = ev.value >= 10000 ? 1.24 : ev.value >= 1500 ? 1.08 : 0.94;
             this.spawnPopup(
               ev.x,
               ev.y - 14,
               `+${formatScore(ev.value)}`,
-              ev.subtext ?? '',
+              this.sanitizeScoreText(ev.subtext ?? ''),
               c,
               scale,
-              0.9
+              0.86,
+              2
             );
           }
           break;
         }
         case 'CELL_OPEN': {
           const c = ev.color ?? '#00f0ff';
-          this.spawnParticles(ev.x, ev.y, 18, c, 190, 0.45, 3.1);
-          this.spawnRing(ev.x, ev.y, 46, c, 0.36, 3);
+          this.spawnParticles(ev.x, ev.y, 16, c, 190, 0.42, 3.0);
+          this.spawnRing(ev.x, ev.y, 44, c, 0.34, 2.8);
           if (ev.targetX !== undefined && ev.targetY !== undefined) {
             this.pushBeam({
               x1: ev.targetX,
@@ -314,16 +430,45 @@ export class CanvasRenderer {
             });
           }
           if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 12, ev.text, '', c, 0.95, 0.72);
+            this.spawnPopup(ev.x, ev.y - 12, this.sanitizeScoreText(ev.text), '', c, 0.88, 0.62, 1);
           }
           break;
         }
         case 'CELL_REIGNITE': {
-          const c = ev.color ?? '#ffb800';
-          this.spawnParticles(ev.x, ev.y, 14, c, 210, 0.4, 2.8);
-          this.spawnRing(ev.x, ev.y, 40, c, 0.32, 2.6);
-          if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 10, ev.text, '', c, 0.92, 0.7);
+          const c = '#ffb800';
+          this.spawnParticles(ev.x, ev.y, 10, c, 195, 0.36, 2.6);
+          this.spawnRing(ev.x, ev.y, 38, '#ff6b00', 0.3, 2.4);
+
+          // Coalesce rapid CELL_REIGNITE events within 160ms into a single crisp counter popup!
+          if (
+            this.reigniteCoalesceTimer > 0 &&
+            this.reignitePopupRef &&
+            this.popups.includes(this.reignitePopupRef)
+          ) {
+            this.reigniteCoalesceCount += 1;
+            this.reigniteCoalesceTimer = 0.16;
+            const pop = this.reignitePopupRef;
+            pop.text = `再点火 ×${this.reigniteCoalesceCount}!`;
+            pop.subtext = ev.mult ? `倍率 ${formatMult(ev.mult)}` : '';
+            pop.x = Math.max(95, Math.min(WORLD.WIDTH - 80, (pop.x + ev.x) * 0.5));
+            pop.y = Math.max(WORLD.BINGO_TOP - 8, (pop.y + (ev.y - 12)) * 0.5);
+            pop.scale = Math.min(1.24, 0.94 + this.reigniteCoalesceCount * 0.04);
+            pop.life = 0.78;
+            pop.maxLife = 0.78;
+            pop.color = this.reigniteCoalesceCount >= 4 ? '#fde047' : '#ffb800';
+          } else {
+            this.reigniteCoalesceCount = 1;
+            this.reigniteCoalesceTimer = 0.16;
+            this.reignitePopupRef = this.spawnPopup(
+              ev.x,
+              ev.y - 12,
+              '再点火 ×1!',
+              ev.mult ? `倍率 ${formatMult(ev.mult)}` : '',
+              '#ffb800',
+              0.94,
+              0.76,
+              2
+            );
           }
           break;
         }
@@ -331,14 +476,23 @@ export class CanvasRenderer {
           this.spawnParticles(ev.x, ev.y, 26, '#00ff88', 250, 0.55, 3.4);
           this.spawnRing(ev.x, ev.y, 64, '#00ff88', 0.45, 3.5);
           this.addShake(4.0);
+          const colLabel = ev.col !== undefined ? POCKET_LABELS[ev.col] : '';
+          const sub = colLabel ? `${colLabel}列 倍率超増幅ゾーン開放！` : (ev.subtext ?? '倍率超増幅ゾーン開放！');
+          this.enqueueCutIn({
+            title: '列覚醒!! OVERDRIVE',
+            subtitle: sub,
+            theme: 'OVERDRIVE',
+            duration: 0.92,
+          });
           this.spawnPopup(
             ev.x,
             ev.y - 22,
-            ev.text ?? 'OVERDRIVE AWAKENED!',
-            ev.subtext ?? '',
+            this.sanitizeScoreText(ev.text ?? 'OVERDRIVE!'),
+            '',
             '#00ff88',
-            1.15,
-            1.1
+            1.1,
+            0.95,
+            3
           );
           break;
         }
@@ -357,23 +511,28 @@ export class CanvasRenderer {
             });
           }
           if (ev.text) {
-            this.spawnParticles(ev.x, ev.y, 20, '#00ff88', 270, 0.46, 3.3);
-            this.addShake(3.5);
+            this.spawnParticles(ev.x, ev.y, 18, '#00ff88', 260, 0.44, 3.2);
+            this.addShake(3.2);
             this.spawnPopup(
               ev.x,
               ev.y - 18,
-              ev.text,
-              ev.subtext ?? '',
+              this.sanitizeScoreText(ev.text),
+              this.sanitizeScoreText(ev.subtext ?? ''),
               '#00ff88',
-              1.12,
-              0.95
+              1.08,
+              0.9,
+              3
             );
           }
           break;
         }
         case 'BINGO_LINE': {
           const c = ev.color ?? '#ffb800';
-          this.spawnParticles(ev.x, ev.y, 34, c, 320, 0.65, 3.8);
+          frameBingoCount += 1;
+          frameBingoMaxCombo = Math.max(frameBingoMaxCombo, ev.combo ?? frameBingoCount);
+          frameBingoTotalScore += ev.value ?? 0;
+
+          this.spawnParticles(ev.x, ev.y, 30, c, 320, 0.65, 3.8);
           this.spawnRing(ev.x, ev.y, 92, c, 0.48, 4);
           if (ev.lineCells && ev.lineCells.length >= 2) {
             if (this.lineFlashes.length >= 16) {
@@ -389,36 +548,48 @@ export class CanvasRenderer {
           this.addShake(5.5);
           this.triggerFlash(c, 0.16);
           const bingoSub =
-            ev.subtext ?? (ev.value !== undefined ? `+${formatScore(ev.value)}` : '');
+            ev.value !== undefined
+              ? `+${formatScore(ev.value)}`
+              : this.sanitizeScoreText(ev.subtext ?? '');
           this.spawnPopup(
             ev.x,
             ev.y - 18,
-            ev.text ?? 'BINGO!!',
+            this.sanitizeScoreText(ev.text ?? 'BINGO!!'),
             bingoSub,
             c,
-            1.38,
-            1.2
+            1.28,
+            1.05,
+            3
           );
           break;
         }
         case 'FULL_BINGO_FEVER': {
-          this.spawnParticles(WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2, 720, 65, '#ffd000', 420, 0.95, 4.5);
-          this.spawnParticles(WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2, 720, 40, '#00ff88', 360, 0.85, 3.6);
-          this.spawnRing(WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2, 720, 190, '#ffd000', 0.65, 5);
+          const centerX = WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2;
+          this.spawnParticles(centerX, 720, 56, '#ffd000', 420, 0.95, 4.4);
+          this.spawnParticles(centerX, 720, 34, '#00ff88', 360, 0.85, 3.5);
+          this.spawnCoinShower(centerX, WORLD.POCKET_TOP - 28, 46);
+          this.spawnRing(centerX, 720, 190, '#ffd000', 0.65, 5);
           this.addShake(7.0);
           this.triggerFlash('#ffd000', 0.28);
           const feverSub =
             ev.value !== undefined
-              ? `${ev.subtext ? `${ev.subtext} ` : ''}+${formatScore(ev.value)}`
-              : (ev.subtext ?? '');
+              ? `+${formatScore(ev.value)}${ev.subtext ? ` // ${ev.subtext}` : ''}`
+              : (ev.subtext ?? 'JACKPOT RUSH!');
+          this.enqueueCutIn({
+            title: '大当たり!! FULL BINGO FEVER!!',
+            subtitle: feverSub,
+            theme: 'FEVER',
+            duration: 1.25,
+          });
           this.spawnPopup(
-            WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
+            centerX,
             640,
-            ev.text ?? 'FULL BINGO FEVER!!',
-            feverSub,
+            'FULL BINGO!!',
+            ev.value !== undefined ? `+${formatScore(ev.value)}` : '',
             '#ffd000',
-            1.55,
-            1.5
+            1.42,
+            1.25,
+            3
           );
           break;
         }
@@ -437,7 +608,21 @@ export class CanvasRenderer {
             });
           }
           if (ev.text) {
-            this.spawnPopup(ev.x, ev.y - 12, ev.text, '', ev.color ?? '#ffb800', 0.9, 0.72);
+            const relicKey = ev.relicId ?? ev.text;
+            const cooldown = this.relicProcCooldowns.get(relicKey) ?? 0;
+            if (cooldown <= 0) {
+              this.relicProcCooldowns.set(relicKey, 0.24);
+              this.spawnPopup(
+                ev.x,
+                ev.y - 12,
+                this.sanitizeScoreText(ev.text),
+                '',
+                ev.color ?? '#ffb800',
+                0.86,
+                0.68,
+                2
+              );
+            }
           }
           break;
         }
@@ -448,6 +633,31 @@ export class CanvasRenderer {
         default:
           break;
       }
+    }
+
+    // Coalesce same-frame BINGO_LINE events into one dramatic Cut-In slash banner + coin fountain
+    if (frameBingoCount > 0) {
+      const n = Math.max(frameBingoCount, frameBingoMaxCombo);
+      const title =
+        n >= 4
+          ? `${n}x MEGA BINGO!!`
+          : n === 3
+            ? 'TRIPLE BINGO!!'
+            : n === 2
+              ? 'DOUBLE BINGO!!'
+              : 'BINGO!!';
+      const subtitle = frameBingoTotalScore > 0 ? `+${formatScore(frameBingoTotalScore)}` : 'LINE CLEAR!';
+      this.enqueueCutIn({
+        title,
+        subtitle,
+        theme: 'BINGO',
+        duration: n >= 2 ? 1.05 : 0.9,
+      });
+      this.spawnCoinShower(
+        WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
+        WORLD.POCKET_TOP - 14,
+        n >= 2 ? 32 : 20
+      );
     }
   }
 
@@ -482,6 +692,32 @@ export class CanvasRenderer {
         maxLife: life,
         size: size * (0.65 + Math.random() * 0.7),
         color,
+        kind: 'SPARK',
+      });
+    }
+  }
+
+  private spawnCoinShower(x: number, y: number, count: number): void {
+    if (this.particles.length > 380) {
+      this.particles.splice(0, count);
+    }
+    for (let i = 0; i < count; i++) {
+      const spreadX = (Math.random() - 0.5) * 280;
+      const launchY = -(230 + Math.random() * 230);
+      const life = 0.85 + Math.random() * 0.5;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 90,
+        y: y + (Math.random() - 0.5) * 20,
+        vx: spreadX,
+        vy: launchY,
+        life,
+        maxLife: life,
+        size: 5 + Math.random() * 2.4,
+        color: i % 4 === 0 ? '#fffbeb' : i % 2 === 0 ? '#fde047' : '#f59e0b',
+        kind: 'COIN',
+        spinPhase: Math.random() * Math.PI * 2,
+        spinSpeed: 10 + Math.random() * 8,
+        gravity: 540,
       });
     }
   }
@@ -516,34 +752,53 @@ export class CanvasRenderer {
     subtext: string,
     color: string,
     scale: number,
-    life: number
-  ): void {
-    if (this.popups.length > 26) {
-      this.popups.shift();
+    life: number,
+    priority: 1 | 2 | 3 = 1
+  ): FloatingPopup {
+    // Keep max concurrent popups strictly capped at 8, evicting oldest low-priority popups first
+    while (this.popups.length >= MAX_FLOATING_POPUPS) {
+      let evictIdx = -1;
+      let lowestPri = 4;
+      for (let i = 0; i < this.popups.length; i++) {
+        if (this.popups[i].priority < lowestPri) {
+          lowestPri = this.popups[i].priority;
+          evictIdx = i;
+          if (lowestPri === 1) break;
+        }
+      }
+      if (evictIdx === -1) evictIdx = 0;
+      const removed = this.popups.splice(evictIdx, 1)[0];
+      if (removed === this.reignitePopupRef) {
+        this.reignitePopupRef = null;
+      }
     }
-    const clampedX = Math.max(85, Math.min(WORLD.WIDTH - 70, x));
-    let adjustedY = Math.max(36, y);
 
-    // Prevent vertical label overlap between simultaneous popups (e.g., x3 SPLIT! clusters)
+    const clampedX = Math.max(92, Math.min(WORLD.WIDTH - 76, x));
+    let adjustedY = Math.max(96, y);
+
+    // Prevent vertical label overlap between simultaneous popups
     for (let pass = 0; pass < 4; pass++) {
       const collides = this.popups.some(
-        (p) => Math.abs(p.x - clampedX) < 55 && Math.abs(p.y - adjustedY) < 24
+        (p) => Math.abs(p.x - clampedX) < 62 && Math.abs(p.y - adjustedY) < 26
       );
       if (!collides) break;
-      adjustedY = Math.max(32, adjustedY - 22);
+      adjustedY = Math.max(92, adjustedY - 24);
     }
 
-    this.popups.push({
+    const popup: FloatingPopup = {
       x: clampedX,
       y: adjustedY,
-      vy: -36,
+      vy: -34,
       text,
       subtext,
       color,
       scale,
       life,
       maxLife: life,
-    });
+      priority,
+    };
+    this.popups.push(popup);
+    return popup;
   }
 
   private addShake(amount: number): void {
@@ -566,8 +821,11 @@ export class CanvasRenderer {
       }
       p.x += p.vx * safeDt;
       p.y += p.vy * safeDt;
-      p.vy += 280 * safeDt;
-      p.vx *= 0.96;
+      p.vy += (p.gravity ?? 280) * safeDt;
+      p.vx *= p.kind === 'COIN' ? 0.992 : 0.96;
+      if (p.kind === 'COIN' && p.spinPhase !== undefined && p.spinSpeed !== undefined) {
+        p.spinPhase += p.spinSpeed * safeDt;
+      }
     }
 
     for (let i = this.rings.length - 1; i >= 0; i--) {
@@ -599,11 +857,46 @@ export class CanvasRenderer {
       const pop = this.popups[i];
       pop.life -= safeDt;
       if (pop.life <= 0) {
+        if (pop === this.reignitePopupRef) {
+          this.reignitePopupRef = null;
+        }
         this.popups.splice(i, 1);
         continue;
       }
       pop.y += pop.vy * safeDt;
       pop.vy *= 0.94;
+    }
+
+    if (this.reigniteCoalesceTimer > 0) {
+      this.reigniteCoalesceTimer = Math.max(0, this.reigniteCoalesceTimer - safeDt);
+      if (this.reigniteCoalesceTimer === 0) {
+        this.reigniteCoalesceCount = 0;
+        this.reignitePopupRef = null;
+      }
+    }
+
+    this.relicProcCooldowns.forEach((rem, key) => {
+      const next = rem - safeDt;
+      if (next <= 0) this.relicProcCooldowns.delete(key);
+      else this.relicProcCooldowns.set(key, next);
+    });
+
+    if (this.inspectedPinTimer > 0) {
+      this.inspectedPinTimer = Math.max(0, this.inspectedPinTimer - safeDt);
+      if (this.inspectedPinTimer === 0) {
+        this.inspectedPinId = null;
+      }
+    }
+
+    if (this.chainPopAnim > 0) {
+      this.chainPopAnim = Math.max(0, this.chainPopAnim - safeDt * 4.5);
+    }
+
+    if (this.activeCutIn) {
+      this.activeCutIn.elapsed += safeDt;
+      if (this.activeCutIn.elapsed >= this.activeCutIn.duration) {
+        this.activeCutIn = this.cutInQueue.shift() ?? null;
+      }
     }
 
     this.shakeIntensity = Math.max(0, this.shakeIntensity - safeDt * 24);
@@ -942,6 +1235,13 @@ export class CanvasRenderer {
     this.syncFeverVideo(state.feverActive);
     this.ensureBgCache();
 
+    // Detect Balatro chainCount increments to trigger spring pop on HUD pill
+    const chain = state.chainCount ?? 0;
+    if (chain > this.lastChainCount) {
+      this.chainPopAnim = 1.0;
+    }
+    this.lastChainCount = chain;
+
     const ctx = this.ctx;
     ctx.save();
     ctx.scale(this.dpr, this.dpr);
@@ -965,6 +1265,9 @@ export class CanvasRenderer {
     this.drawPins(ctx, state);
     this.drawBalls(ctx, state.balls);
     this.drawVfxLayer(ctx);
+    this.drawChainHudPill(ctx, state);
+    this.drawPinInspectorTooltip(ctx, state);
+    this.drawCutInBanner(ctx, state.simTime);
 
     if (this.flashAlpha > 0.01) {
       ctx.fillStyle = this.flashColor;
@@ -991,6 +1294,9 @@ export class CanvasRenderer {
       ctx.strokeStyle = `rgba(255, 208, 0, ${0.45 + pulse})`;
       ctx.lineWidth = 4;
       ctx.strokeRect(4, 4, WORLD.WIDTH - 8, WORLD.HEIGHT - 8);
+
+      // Rhythmic golden cabinet lamp strobe dots along left & right edges of playfield
+      this.drawFeverCabinetLamps(ctx, state.simTime);
     }
 
     // Column vertical lane highlights aligned 1:1 with Pockets and Bingo Grid
@@ -1005,6 +1311,124 @@ export class CanvasRenderer {
         ctx.fillRect(colX, WORLD.PIN_AREA_TOP, WORLD.COL_WIDTH, WORLD.POCKET_BOTTOM - WORLD.PIN_AREA_TOP);
       }
     }
+
+    // Board Customization 3 Route Lanes during SHOP Board-Tune Mode
+    const inShopBoardTune =
+      state.phase === 'SHOP' &&
+      (this.boardTuneHighlight || state.pendingPinInventory.length > 0 || state.selectedPinBrush !== null);
+    if (inShopBoardTune) {
+      this.drawShopRouteZones(ctx, state);
+    }
+  }
+
+  private drawFeverCabinetLamps(ctx: CanvasRenderingContext2D, simTime: number): void {
+    ctx.save();
+    const step = 36;
+    const chasePhase = Math.floor(simTime * 11);
+    const palette = ['#fde047', '#ffb800', '#ff2a5f', '#00ff88'];
+    let idx = 0;
+    for (let y = 76; y <= WORLD.HEIGHT - 32; y += step) {
+      const lit = (idx + chasePhase) % 3 === 0;
+      const color = palette[(idx + Math.floor(chasePhase / 2)) % palette.length];
+      for (const lx of [7, WORLD.WIDTH - 7]) {
+        if (lit) {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.35;
+          ctx.beginPath();
+          ctx.arc(lx, y, 7.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = lit ? 0.96 : 0.32;
+        ctx.fillStyle = lit ? '#fffbeb' : color;
+        ctx.beginPath();
+        ctx.arc(lx, y, lit ? 3.4 : 2.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      idx++;
+    }
+    ctx.restore();
+  }
+
+  private drawShopRouteZones(ctx: CanvasRenderingContext2D, state: GameStateSnapshot): void {
+    const preferred = state.nextStageModifier?.preferredRoute;
+    const zoneTop = WORLD.PIN_AREA_TOP - 8;
+    const zoneH = WORLD.PIN_AREA_BOTTOM - zoneTop;
+    const x0 = WORLD.BOARD_LEFT;
+    const wLeft = Math.round(WORLD.BOARD_WIDTH * 0.33);
+    const wCenter = Math.round(WORLD.BOARD_WIDTH * 0.34);
+    const wRight = WORLD.BOARD_WIDTH - wLeft - wCenter;
+
+    const zones: Array<{
+      id: 'LEFT' | 'CENTER' | 'RIGHT';
+      x: number;
+      w: number;
+      label: string;
+    }> = [
+      { id: 'LEFT', x: x0, w: wLeft, label: '左打ち (B-I)' },
+      { id: 'CENTER', x: x0 + wLeft, w: wCenter, label: '中央 (I-N-G)' },
+      { id: 'RIGHT', x: x0 + wLeft + wCenter, w: wRight, label: '右打ち (G-O)' },
+    ];
+
+    const pulse = 0.5 + 0.5 * Math.sin(state.simTime * 5.2);
+
+    ctx.save();
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      const isPreferred = preferred === z.id;
+
+      // Translucent route band
+      ctx.fillStyle = isPreferred
+        ? `rgba(255, 184, 0, ${0.11 + pulse * 0.06})`
+        : i % 2 === 0
+          ? 'rgba(15, 23, 42, 0.24)'
+          : 'rgba(15, 23, 42, 0.14)';
+      ctx.fillRect(z.x, zoneTop, z.w, zoneH);
+
+      if (isPreferred) {
+        ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + pulse * 0.35})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(z.x + 1.5, zoneTop + 1.5, z.w - 3, zoneH - 3);
+      }
+
+      // Dashed vertical divider between zones
+      if (i > 0) {
+        ctx.strokeStyle = 'rgba(245, 185, 66, 0.32)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(z.x, zoneTop);
+        ctx.lineTo(z.x, zoneTop + zoneH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Zone top header pill anchored cleanly in upper dome headroom above Row 0 pins (y=126)
+      const cx = z.x + z.w / 2;
+      const pillW = Math.min(z.w - 10, 144);
+      const pillH = isPreferred ? 34 : 21;
+      const pillX = cx - pillW / 2;
+      const pillY = isPreferred ? 70 : 80;
+
+      ctx.fillStyle = isPreferred ? 'rgba(66, 32, 6, 0.94)' : 'rgba(10, 14, 24, 0.88)';
+      this.roundedRectPath(ctx, pillX, pillY, pillW, pillH, 6);
+      ctx.fill();
+      ctx.strokeStyle = isPreferred ? '#fde047' : 'rgba(148, 163, 184, 0.45)';
+      ctx.lineWidth = isPreferred ? 1.8 : 1.1;
+      ctx.stroke();
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = isPreferred ? '#fffbeb' : '#cbd5e1';
+      ctx.font = '800 10.5px "Chakra Petch", "M PLUS 1p", sans-serif';
+      ctx.fillText(z.label, cx, isPreferred ? pillY + 11 : pillY + 10.5);
+
+      if (isPreferred) {
+        ctx.fillStyle = '#fde047';
+        ctx.font = '800 9.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+        ctx.fillText('★次ステージ有利ルート!', cx, pillY + 25);
+      }
+    }
+    ctx.restore();
   }
 
   private drawDynamicRailControls(ctx: CanvasRenderingContext2D, state: GameStateSnapshot): void {
@@ -1068,7 +1492,10 @@ export class CanvasRenderer {
     state: GameStateSnapshot,
     engine: IGameEngine
   ): void {
-    if (!this.showAimGuide) return;
+    if (!this.showAimGuide) {
+      this.predictedTargetCol = null;
+      return;
+    }
 
     const powerKey = Math.round(state.launchPower * 500);
     if (powerKey !== this.cachedPreviewPowerKey || this.cachedPreviewPts.length === 0) {
@@ -1077,7 +1504,10 @@ export class CanvasRenderer {
     }
 
     const pts = this.cachedPreviewPts;
-    if (pts.length < 2) return;
+    if (pts.length < 2) {
+      this.predictedTargetCol = null;
+      return;
+    }
 
     const stroke = this.getStrokeLabel(state.launchPower);
     const endPt = pts[pts.length - 1];
@@ -1085,10 +1515,21 @@ export class CanvasRenderer {
       0,
       Math.min(4, Math.floor((endPt.x - WORLD.BOARD_LEFT) / WORLD.COL_WIDTH))
     );
+    this.predictedTargetCol = targetCol;
+
     const isReachAim = Boolean(state.reachColumns[targetCol]);
     const guideColor = isReachAim ? '#fde047' : stroke.color;
 
     ctx.save();
+    // Soft predicted landing column spotlight beam down into the target pocket
+    const colLeft = WORLD.BOARD_LEFT + targetCol * WORLD.COL_WIDTH;
+    const beamGrad = ctx.createLinearGradient(0, WORLD.PIN_AREA_TOP + 120, 0, WORLD.POCKET_TOP + 8);
+    beamGrad.addColorStop(0, 'rgba(255, 184, 0, 0.0)');
+    beamGrad.addColorStop(0.6, 'rgba(255, 184, 0, 0.065)');
+    beamGrad.addColorStop(1, 'rgba(253, 224, 71, 0.16)');
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(colLeft + 4, WORLD.PIN_AREA_TOP + 120, WORLD.COL_WIDTH - 8, WORLD.POCKET_TOP - (WORLD.PIN_AREA_TOP + 120) + 8);
+
     ctx.strokeStyle = guideColor;
     ctx.lineWidth = isReachAim ? 2.8 : 2;
     ctx.globalAlpha = isReachAim ? 0.85 : 0.62;
@@ -1131,7 +1572,12 @@ export class CanvasRenderer {
       this.labelWidthCache.set(labelText, w);
     }
     const bx = Math.max(WORLD.BOARD_LEFT + 6, Math.min(WORLD.BOARD_RIGHT - w - 6, rx - w / 2));
-    const by = Math.max(28, ry - 30);
+    const chainHudVisible =
+      state.phase === 'PLAYING' && (state.chainCount ?? 0) > 0 && (state.chainTotalScore ?? 0) > 0;
+    let by = Math.max(28, ry - 30);
+    if (chainHudVisible && by < 88 && by + 20 > 44) {
+      by = ry + 16;
+    }
 
     ctx.fillStyle = 'rgba(20, 12, 16, 0.92)';
     this.roundedRectPath(ctx, bx, by, w, 20, 5);
@@ -1561,8 +2007,9 @@ export class CanvasRenderer {
     const height = bottom - top;
 
     for (const p of state.pockets) {
-      if (p.overdrive || p.isReachTarget || p.hitAnim > 0.02) {
-        this.drawSinglePocket(ctx, p, top, height, state.simTime);
+      const isAimTarget = this.showAimGuide && this.predictedTargetCol === p.col;
+      if (p.overdrive || p.isReachTarget || p.hitAnim > 0.02 || isAimTarget) {
+        this.drawSinglePocket(ctx, p, top, height, state.simTime, isAimTarget);
       }
     }
   }
@@ -1572,7 +2019,8 @@ export class CanvasRenderer {
     p: PocketState,
     top: number,
     height: number,
-    simTime: number
+    simTime: number,
+    isAimTarget: boolean
   ): void {
     const x = p.xLeft + 4;
     const w = WORLD.COL_WIDTH - 8;
@@ -1581,19 +2029,59 @@ export class CanvasRenderer {
       ? 'rgba(6, 78, 59, 0.95)'
       : p.isReachTarget
         ? 'rgba(110, 48, 8, 0.94)'
-        : 'rgba(34, 24, 34, 0.94)';
+        : isAimTarget
+          ? 'rgba(56, 36, 16, 0.92)'
+          : 'rgba(34, 24, 34, 0.94)';
     this.roundedRectPath(ctx, x, top + 5, w, height - 8, 5);
     ctx.fill();
 
     // Glossy acrylic lens highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillStyle = isAimTarget ? 'rgba(253, 224, 71, 0.2)' : 'rgba(255, 255, 255, 0.14)';
     ctx.fillRect(x + 3, top + 6, w - 6, 9);
 
-    const borderColor = p.overdrive ? '#34d399' : p.isReachTarget ? '#fbbf24' : '#f5b942';
+    const borderColor = p.overdrive
+      ? '#34d399'
+      : p.isReachTarget
+        ? '#fbbf24'
+        : isAimTarget
+          ? '#fde047'
+          : '#f5b942';
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = p.overdrive || p.isReachTarget ? 2.4 : 1.5;
+    ctx.lineWidth = p.overdrive || p.isReachTarget || isAimTarget ? 2.4 : 1.5;
     this.roundedRectPath(ctx, x, top + 5, w, height - 8, 5);
     ctx.stroke();
+
+    // Predicted landing column golden spotlight glow along top frame
+    if (isAimTarget) {
+      const pulse = 0.65 + 0.35 * Math.sin(simTime * 7.5);
+      ctx.save();
+      ctx.strokeStyle = '#fde047';
+      ctx.globalAlpha = pulse;
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(x + 5, top + 5);
+      ctx.lineTo(x + w - 5, top + 5);
+      ctx.stroke();
+
+      // Compact '狙い列' top spotlight badge (positioned cleanly if REACH arrow is also present)
+      const badgeW = 46;
+      const badgeH = 14;
+      const badgeY = p.isReachTarget && !p.overdrive ? top - 34 : top - 16;
+      ctx.globalAlpha = 0.94;
+      ctx.fillStyle = 'rgba(42, 22, 4, 0.94)';
+      this.roundedRectPath(ctx, p.xCenter - badgeW / 2, badgeY, badgeW, badgeH, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fde047';
+      ctx.font = '800 8.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('狙い列', p.xCenter, badgeY + badgeH / 2 + 0.5);
+      ctx.restore();
+    }
 
     if (p.hitAnim > 0.02) {
       ctx.fillStyle = '#fffbeb';
@@ -1643,7 +2131,7 @@ export class CanvasRenderer {
       ctx.lineTo(p.xCenter + 7, top - 9 + bob);
       ctx.stroke();
     } else {
-      ctx.fillStyle = 'rgba(245, 185, 66, 0.72)';
+      ctx.fillStyle = isAimTarget ? '#fde047' : 'rgba(245, 185, 66, 0.72)';
       ctx.font = '700 8.5px "Chakra Petch", sans-serif';
       ctx.fillText(`入賞口 ${p.col + 1}`, p.xCenter, top + 47);
     }
@@ -2001,6 +2489,7 @@ export class CanvasRenderer {
       }
 
       for (const p of this.particles) {
+        if (p.kind === 'COIN') continue;
         const alpha = Math.max(0, p.life / p.maxLife);
         const s = p.size * alpha + 0.5;
         ctx.globalAlpha = alpha;
@@ -2009,6 +2498,40 @@ export class CanvasRenderer {
       }
 
       ctx.restore();
+
+      // Render spinning metallic golden coin fountain bursts crisply on top
+      let hasCoins = false;
+      for (const p of this.particles) {
+        if (p.kind === 'COIN') {
+          hasCoins = true;
+          break;
+        }
+      }
+      if (hasCoins) {
+        ctx.save();
+        for (const p of this.particles) {
+          if (p.kind !== 'COIN') continue;
+          const alpha = Math.min(1, (p.life / p.maxLife) * 1.5);
+          const spinCos = Math.max(0.22, Math.abs(Math.cos(p.spinPhase ?? 0)));
+          const rx = p.size * spinCos;
+          const ry = p.size;
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          if (rx > 2.2) {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(p.x - rx * 0.25, p.y - ry * 0.28, Math.max(1, rx * 0.28), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
     }
 
     for (const pop of this.popups) {
@@ -2018,7 +2541,7 @@ export class CanvasRenderer {
       ctx.translate(Math.round(pop.x), Math.round(pop.y));
       ctx.scale(pop.scale, pop.scale);
 
-      ctx.font = '900 16px Orbitron, "Chakra Petch", sans-serif';
+      ctx.font = '900 15px Orbitron, "Chakra Petch", "M PLUS 1p", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 4;
@@ -2032,10 +2555,318 @@ export class CanvasRenderer {
         ctx.lineWidth = 3;
         ctx.strokeStyle = '#050811';
         ctx.strokeText(pop.subtext, 0, 15);
-        ctx.fillStyle = '#f1f5f9';
+        ctx.fillStyle = '#fffbeb';
         ctx.fillText(pop.subtext, 0, 15);
       }
       ctx.restore();
     }
+  }
+
+  /**
+   * Live Balatro-Style [ CHAIN & FORMULA ] Dopamine HUD Pill on upper playfield (y = 48..84).
+   */
+  private drawChainHudPill(ctx: CanvasRenderingContext2D, state: GameStateSnapshot): void {
+    if (state.phase !== 'PLAYING') return;
+    const chain = state.chainCount ?? 0;
+    const total = state.chainTotalScore ?? 0;
+    if (chain <= 0 || total <= 0) return;
+
+    const chips = state.lastShotChips ?? 0;
+    const mult = state.lastShotMult ?? state.stageMult;
+    const timerFrac = Math.max(0, Math.min(1, (state.chainTimer ?? 1) / 3.0));
+
+    // Tiered color progression: 1-3 Warm Gold -> 4-7 Crimson-Gold -> 8+ Electric Emerald-Gold
+    let borderCol = '#ffb800';
+    let badgeBg = '#78350f';
+    let badgeText = '#fde047';
+    let totalColor = '#fffbeb';
+    let glowColor = 'rgba(255, 184, 0, 0.35)';
+
+    if (chain >= 8) {
+      borderCol = '#00ff88';
+      badgeBg = '#064e3b';
+      badgeText = '#6ee7b7';
+      totalColor = '#00ff88';
+      glowColor = 'rgba(0, 255, 136, 0.42)';
+    } else if (chain >= 4) {
+      borderCol = '#ff2a5f';
+      badgeBg = '#881337';
+      badgeText = '#fda4af';
+      totalColor = '#fde047';
+      glowColor = 'rgba(255, 42, 95, 0.42)';
+    }
+
+    const cx = WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2;
+    const cy = 66; // spans y = 48..84 (36px tall)
+    const pillH = 36;
+    const pillW = Math.min(WORLD.BOARD_WIDTH - 20, 424);
+    const scale = 1 + Math.sin(Math.min(1, this.chainPopAnim) * Math.PI) * 0.12;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+
+    // Subtle outer glow
+    ctx.fillStyle = glowColor;
+    this.roundedRectPath(ctx, -pillW / 2 - 3, -pillH / 2 - 3, pillW + 6, pillH + 6, 12);
+    ctx.fill();
+
+    // Deep obsidian metallic pill body
+    const bgGrad = ctx.createLinearGradient(0, -pillH / 2, 0, pillH / 2);
+    bgGrad.addColorStop(0, 'rgba(22, 16, 30, 0.95)');
+    bgGrad.addColorStop(1, 'rgba(9, 7, 14, 0.96)');
+    ctx.fillStyle = bgGrad;
+    this.roundedRectPath(ctx, -pillW / 2, -pillH / 2, pillW, pillH, 10);
+    ctx.fill();
+
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Left badge: CHAIN xN
+    const badgeW = 92;
+    const badgeX = -pillW / 2 + 6;
+    ctx.fillStyle = badgeBg;
+    this.roundedRectPath(ctx, badgeX, -pillH / 2 + 5, badgeW, pillH - 12, 6);
+    ctx.fill();
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+
+    ctx.fillStyle = badgeText;
+    ctx.font = '900 11.5px Orbitron, "Chakra Petch", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`CHAIN x${chain}`, badgeX + badgeW / 2, -1);
+
+    // Center formula: 基礎 chips × mult (strip formatMult's leading 'x')
+    const formulaText = `基礎 ${formatScore(chips)} × ${formatMult(mult).replace(/^x/i, '')}`;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 11px "Chakra Petch", "M PLUS 1p", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(formulaText, -8, -1);
+
+    // Right giant gleaming total: +score
+    const totalStr = `+${formatScore(total)}`;
+    ctx.fillStyle = totalColor;
+    ctx.font = '900 17px Orbitron, "Chakra Petch", "M PLUS 1p", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#070a12';
+    ctx.strokeText(totalStr, pillW / 2 - 12, -0.5);
+    ctx.fillText(totalStr, pillW / 2 - 12, -0.5);
+
+    // Subtle chain window countdown bar at bottom inner edge
+    const barW = pillW - 16;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillRect(-barW / 2, pillH / 2 - 4, barW, 2.2);
+    ctx.fillStyle = borderCol;
+    ctx.fillRect(-barW / 2, pillH / 2 - 4, barW * timerFrac, 2.2);
+
+    ctx.restore();
+  }
+
+  /**
+   * Interactive 1-line dark-gold tooltip plate above tapped/hovered Special Pins.
+   */
+  private drawPinInspectorTooltip(ctx: CanvasRenderingContext2D, state: GameStateSnapshot): void {
+    const targetId =
+      this.inspectedPinId !== null
+        ? this.inspectedPinId
+        : state.phase === 'PLAYING'
+          ? this.hoveredPinId
+          : null;
+    if (targetId === null) return;
+
+    const pin = state.pins.find((p) => p.id === targetId);
+    if (!pin || pin.kind === 'NORMAL') return;
+
+    const text = PIN_INSPECT_TEXT[pin.kind];
+    if (!text) return;
+    const def = PIN_CATALOG[pin.kind];
+
+    ctx.save();
+    ctx.font = '700 11.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+    const textW = Math.ceil(ctx.measureText(text).width);
+    const padX = 12;
+    const boxW = Math.min(WORLD.BOARD_WIDTH - 14, textW + padX * 2 + 12);
+    const boxH = 26;
+
+    const bx = Math.max(
+      WORLD.BOARD_LEFT + 6,
+      Math.min(WORLD.BOARD_RIGHT - boxW - 6, pin.x - boxW / 2)
+    );
+    const placeBelow = pin.y < 146;
+    const by = placeBelow ? pin.y + pin.radius + 14 : pin.y - pin.radius - boxH - 12;
+
+    // Subtle highlight ring around inspected special pin
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pin.x, pin.y, pin.radius + 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Dark-gold tooltip plate
+    ctx.fillStyle = 'rgba(13, 10, 18, 0.95)';
+    this.roundedRectPath(ctx, bx, by, boxW, boxH, 7);
+    ctx.fill();
+    ctx.strokeStyle = '#f5b942';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    // Small caret pointing to the pin
+    const caretX = Math.max(bx + 12, Math.min(bx + boxW - 12, pin.x));
+    ctx.fillStyle = 'rgba(13, 10, 18, 0.95)';
+    ctx.beginPath();
+    if (placeBelow) {
+      ctx.moveTo(caretX - 5, by);
+      ctx.lineTo(caretX, by - 6);
+      ctx.lineTo(caretX + 5, by);
+    } else {
+      ctx.moveTo(caretX - 5, by + boxH);
+      ctx.lineTo(caretX, by + boxH + 6);
+      ctx.lineTo(caretX + 5, by + boxH);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Color accent dot + crisp 1-line label
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(bx + 10, by + boxH / 2, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fffbeb';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, bx + 18, by + boxH / 2 + 0.5, boxW - 24);
+    ctx.restore();
+  }
+
+  /**
+   * Dramatic Pachinko Cut-In Slash Banner zooming across the playfield center without blocking play.
+   */
+  private drawCutInBanner(ctx: CanvasRenderingContext2D, simTime: number): void {
+    const banner = this.activeCutIn;
+    if (!banner) return;
+
+    const t = Math.max(0, Math.min(1, banner.elapsed / banner.duration));
+    let slideX = 0;
+    let alpha = 1;
+    let scaleY = 1;
+
+    if (t < 0.16) {
+      // Ease-out slam zoom from right
+      const u = t / 0.16;
+      const easeOut = 1 - Math.pow(1 - u, 3);
+      slideX = (1 - easeOut) * 280;
+      scaleY = 0.65 + easeOut * 0.35;
+      alpha = Math.min(1, u * 1.6);
+    } else if (t > 0.78) {
+      // Smooth slide-out to left + fade
+      const u = (t - 0.78) / 0.22;
+      const easeIn = u * u;
+      slideX = -easeIn * 240;
+      alpha = 1 - easeIn;
+    }
+
+    const cx = WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2 + slideX;
+    const cy = 338;
+    const bandW = WORLD.WIDTH + 80;
+    const bandH = banner.theme === 'FEVER' ? 84 : 72;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    ctx.translate(cx, cy);
+    ctx.rotate(-0.072); // Sleek ~-4.1deg pachinko diagonal slash angle
+    ctx.scale(1, scaleY);
+
+    // Radiant speed-lines behind the sash
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha * 0.22;
+    const rayCol =
+      banner.theme === 'OVERDRIVE'
+        ? '#00ff88'
+        : banner.theme === 'FEVER'
+          ? '#fde047'
+          : '#ff2a5f';
+    ctx.fillStyle = rayCol;
+    for (let i = -2; i <= 2; i++) {
+      ctx.fillRect(-bandW / 2, i * 16 - 2, bandW, 3);
+    }
+    ctx.restore();
+
+    // Metallic slash ribbon gradient fill
+    const grad = ctx.createLinearGradient(-bandW / 2, -bandH / 2, bandW / 2, bandH / 2);
+    if (banner.theme === 'OVERDRIVE') {
+      grad.addColorStop(0, 'rgba(2, 44, 34, 0.94)');
+      grad.addColorStop(0.5, 'rgba(5, 120, 86, 0.95)');
+      grad.addColorStop(1, 'rgba(2, 44, 34, 0.94)');
+    } else if (banner.theme === 'FEVER') {
+      grad.addColorStop(0, 'rgba(136, 19, 55, 0.95)');
+      grad.addColorStop(0.32, 'rgba(180, 83, 9, 0.96)');
+      grad.addColorStop(0.66, 'rgba(217, 119, 6, 0.96)');
+      grad.addColorStop(1, 'rgba(6, 95, 70, 0.95)');
+    } else {
+      grad.addColorStop(0, 'rgba(76, 5, 25, 0.95)');
+      grad.addColorStop(0.5, 'rgba(190, 18, 60, 0.96)');
+      grad.addColorStop(1, 'rgba(124, 45, 18, 0.95)');
+    }
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(-bandW / 2, -bandH / 2, bandW, bandH);
+
+    // Sweeping diagonal glossy sheen
+    const sheenX = ((t * 1.7) - 0.35) * bandW - bandW / 2;
+    const sheenGrad = ctx.createLinearGradient(sheenX - 45, 0, sheenX + 45, 0);
+    sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    sheenGrad.addColorStop(0.5, 'rgba(255, 250, 220, 0.32)');
+    sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = sheenGrad;
+    ctx.fillRect(-bandW / 2, -bandH / 2, bandW, bandH);
+
+    // Gleaming double metallic top/bottom trim rails
+    const trimCol =
+      banner.theme === 'OVERDRIVE'
+        ? '#00ff88'
+        : banner.theme === 'FEVER'
+          ? `hsl(${Math.floor((simTime * 220) % 360)}, 95%, 68%)`
+          : '#fde047';
+    ctx.fillStyle = trimCol;
+    ctx.fillRect(-bandW / 2, -bandH / 2, bandW, 4);
+    ctx.fillRect(-bandW / 2, bandH / 2 - 4, bandW, 4);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    ctx.fillRect(-bandW / 2, -bandH / 2 + 5, bandW, 1.4);
+    ctx.fillRect(-bandW / 2, bandH / 2 - 6.4, bandW, 1.4);
+
+    // Main title
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const titleFontSize = banner.theme === 'FEVER' ? 23 : 26;
+    ctx.font = `900 ${titleFontSize}px Orbitron, "M PLUS 1p", "Chakra Petch", sans-serif`;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#12070c';
+    ctx.strokeText(banner.title, 0, -10, WORLD.BOARD_WIDTH - 24);
+    ctx.fillStyle = banner.theme === 'OVERDRIVE' ? '#ecfdf5' : '#fffbeb';
+    ctx.fillText(banner.title, 0, -10, WORLD.BOARD_WIDTH - 24);
+
+    // Sub-banner pill (+score or overdrive note)
+    if (banner.subtitle) {
+      ctx.font = '900 14px Orbitron, "M PLUS 1p", "Chakra Petch", sans-serif';
+      const subW = Math.min(WORLD.BOARD_WIDTH - 48, Math.ceil(ctx.measureText(banner.subtitle).width) + 28);
+      const subH = 22;
+      ctx.fillStyle = 'rgba(10, 8, 16, 0.85)';
+      this.roundedRectPath(ctx, -subW / 2, 9, subW, subH, 11);
+      ctx.fill();
+      ctx.strokeStyle = trimCol;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = banner.theme === 'OVERDRIVE' ? '#6ee7b7' : '#fde047';
+      ctx.fillText(banner.subtitle, 0, 20.5, subW - 14);
+    }
+
+    ctx.restore();
   }
 }

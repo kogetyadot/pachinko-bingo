@@ -118,7 +118,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   reignite_amp: {
     id: 'reignite_amp',
     name: '再点火コンデンサ',
-    description: '既に開いたマスへ再ヒット（RE-IGNITE）するたび、ステージ倍率が ×1.18 + 0.2x 増幅！',
+    description: '既開放マスへの再点火ごとにステージ倍率 +0.65x ＆ ×1.05乗算増幅（ボム・レーザーと超相性◎）！',
     cost: 65,
     rarity: 'LEGENDARY',
     accentColor: '#ff2a5f',
@@ -142,7 +142,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   overdrive_arc: {
     id: 'overdrive_arc',
     name: '過電流アーク',
-    description: 'OVERDRIVE列突入時のステージ倍率上昇が ×1.75 → ×2.4 に強化＆電撃飛び火が2マスに増加。',
+    description: '列覚醒（OVERDRIVE）突入時の倍率上昇を ×1.35（+2.0x）に強化＆電撃飛び火が2マスに増加！',
     cost: 62,
     rarity: 'LEGENDARY',
     accentColor: '#00f0ff',
@@ -150,7 +150,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   pinball_wizard: {
     id: 'pinball_wizard',
     name: 'ハイボルテージ釘師',
-    description: '玉がピンに8回当たるごとに、その玉の倍率 ×1.45 ＆ ランダムな未開放マスを1つ電撃開放！',
+    description: '玉が釘に8回当たるごとに、その玉の倍率 ×1.45 ＆ ランダムな未開放マスを1つ電撃開放！',
     cost: 52,
     rarity: 'RARE',
     accentColor: '#ffb800',
@@ -174,7 +174,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   left_trick: {
     id: 'left_trick',
     name: '左打ちプリズム機構',
-    description: 'パワー42%以下（左打ち領域）で発射した玉は、最初のピン接触時に50%で2分裂する。',
+    description: 'パワー42%以下（左打ち領域）で発射した玉は、最初の釘接触時に50%で2分裂する。',
     cost: 44,
     rarity: 'COMMON',
     accentColor: '#00ff88',
@@ -190,7 +190,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   fever_engine: {
     id: 'fever_engine',
     name: '永久機関フィーバー',
-    description: 'FULL BINGO（全25マス開放）達成時、ボーナス球が +4球 に増加しステージ倍率 ×1.5！',
+    description: 'FULL BINGO（全25マス開放）達成時、FEVER追加球 +3球（1ステージ2回まで）＆ 倍率 ×1.35！',
     cost: 58,
     rarity: 'RARE',
     accentColor: '#ffd000',
@@ -198,7 +198,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   medal_magnet: {
     id: 'medal_magnet',
     name: '黄金メダル回収機',
-    description: 'BINGOが1列成立するたび、即座にショップ資金 +¥16 を追加獲得する。',
+    description: 'BINGOが1列成立するたび、ショップ資金 +¥10 を即時獲得（1ステージ最大 +¥60）。',
     cost: 40,
     rarity: 'COMMON',
     accentColor: '#ffb800',
@@ -206,7 +206,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   extra_magazine: {
     id: 'extra_magazine',
     name: '拡張マガジン',
-    description: '毎ステージ開始時に補充される持ち玉数が +3球（クローム2＋ボム1）増加する。',
+    description: '毎ステージ開始時に補充される持ち玉数が +3球（銀玉2＋ボム1）増加する。',
     cost: 54,
     rarity: 'RARE',
     accentColor: '#38bdf8',
@@ -214,22 +214,84 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
 };
 
 export const STAGE_TARGETS: number[] = [
-  2400,    // Stage 1: Crisp 1-2 Bingo clear, teaches aiming & Reach
-  6800,    // Stage 2: First Shop upgrade test
-  19500,   // Stage 3: Build taking shape
-  58000,   // Stage 4: Mid-run synergy check
-  175000,  // Stage 5: Column Overdrive mastery
-  540000,  // Stage 6: Multi-split + Re-ignite chains
-  1650000, // Stage 7: High-voltage inflation
-  5200000, // Stage 8: Final Boss Cabinet
+  2200,    // Stage 1: Crisp 1-2 Bingo clear, teaches aiming & Reach
+  6500,    // Stage 2: Center N-col bonus & first Shop upgrade
+  18000,   // Stage 3: Left-chance route crafting
+  48000,   // Stage 4: Diagonal Bingo synergy test
+  130000,  // Stage 5: Right-Hit RUSH build spike
+  340000,  // Stage 6: High-Voltage yakumono chaining
+  880000,  // Stage 7: Overdrive surge mastery
+  2200000, // Stage 8: Final Boss Golden Cabinet
 ];
+
+export const STAGE_MODIFIERS = [
+  {
+    id: 'STANDARD' as const,
+    name: '標準台',
+    shortDesc: '狙いの列に落としてBINGOを揃えよう！',
+    accentColor: '#f5b942',
+  },
+  {
+    id: 'CENTER_BONUS' as const,
+    name: '中央N列ボーナスタイム',
+    shortDesc: '中央「N」入賞口で基礎チップ +140！',
+    accentColor: '#fbbf24',
+    preferredRoute: 'CENTER' as const,
+  },
+  {
+    id: 'LEFT_CHANCE' as const,
+    name: '左打ちチャンス台',
+    shortDesc: '左打ち(42%以下)の玉は釘チップ ×1.6！',
+    accentColor: '#34d399',
+    preferredRoute: 'LEFT' as const,
+  },
+  {
+    id: 'DIAGONAL_GOLD' as const,
+    name: '斜めビンゴ高配当台',
+    shortDesc: '斜めラインBINGOの獲得スコア ×2.0！',
+    accentColor: '#fb7185',
+  },
+  {
+    id: 'RIGHT_RUSH' as const,
+    name: '右打ちRUSH台',
+    shortDesc: '右打ち(68%以上)の玉は初期倍率 ×1.4！',
+    accentColor: '#f97316',
+    preferredRoute: 'RIGHT' as const,
+  },
+  {
+    id: 'HIGH_VOLTAGE' as const,
+    name: '高電圧役物台',
+    shortDesc: 'バンパー＆風車の獲得チップ・倍率が強化！',
+    accentColor: '#fde047',
+  },
+  {
+    id: 'OVERDRIVE_SURGE' as const,
+    name: '覚醒加速台',
+    shortDesc: '列OVERDRIVE突入時の倍率上昇が大幅UP！',
+    accentColor: '#10b981',
+  },
+  {
+    id: 'GOLDEN_BOSS' as const,
+    name: '大決戦・黄金筐体',
+    shortDesc: '全BINGO配当 ×1.5！最強ビルドで撃破せよ！',
+    accentColor: '#fde047',
+  },
+];
+
+export function getStageModifier(stage: number) {
+  if (stage <= STAGE_MODIFIERS.length) {
+    return STAGE_MODIFIERS[Math.max(0, stage - 1)];
+  }
+  const cycle = STAGE_MODIFIERS.slice(1);
+  return cycle[(stage - 1) % cycle.length];
+}
 
 export function getStageTargetScore(stage: number): number {
   if (stage <= STAGE_TARGETS.length) {
     return STAGE_TARGETS[Math.max(0, stage - 1)];
   }
   const extra = stage - STAGE_TARGETS.length;
-  return Math.round(STAGE_TARGETS[STAGE_TARGETS.length - 1] * Math.pow(3.8, extra));
+  return Math.round(STAGE_TARGETS[STAGE_TARGETS.length - 1] * Math.pow(2.45, extra));
 }
 
 export const POCKET_LABELS: Array<'B' | 'I' | 'N' | 'G' | 'O'> = ['B', 'I', 'N', 'G', 'O'];
@@ -340,21 +402,32 @@ export function createDefaultPinLayout(): InitialPinBlueprint[] {
 
 export function formatScore(n: number): string {
   if (!Number.isFinite(n)) return 'MAX';
-  const rounded = Math.floor(n);
-  if (rounded < 1_000_000_000) {
+  const rounded = Math.floor(Math.max(0, n));
+  if (rounded < 100_000) {
     return rounded.toLocaleString('en-US');
   }
-  const exp = Math.floor(Math.log10(rounded));
-  const mantissa = (rounded / Math.pow(10, exp)).toFixed(2);
-  return `${mantissa}e${exp}`;
+  if (rounded < 100_000_000) {
+    const man = rounded / 10_000;
+    return man >= 1000 ? `${Math.round(man).toLocaleString('en-US')}万` : `${man.toFixed(1)}万`;
+  }
+  if (rounded < 1_000_000_000_000) {
+    const oku = rounded / 100_000_000;
+    return oku >= 100 ? `${Math.round(oku).toLocaleString('en-US')}億` : `${oku.toFixed(2)}億`;
+  }
+  const cho = rounded / 1_000_000_000_000;
+  return cho >= 100 ? `${Math.round(cho).toLocaleString('en-US')}兆` : `${cho.toFixed(2)}兆`;
 }
 
 export function formatMult(m: number): string {
-  if (m >= 1000) {
+  if (!Number.isFinite(m)) return 'xMAX';
+  if (m >= 10_000) {
     return `x${formatScore(Math.round(m))}`;
   }
   if (m >= 100) {
-    return `x${m.toFixed(0)}`;
+    return `x${Math.round(m).toLocaleString('en-US')}`;
+  }
+  if (m >= 10) {
+    return `x${Number(m.toFixed(1))}`;
   }
   return `x${Number(m.toFixed(2))}`;
 }

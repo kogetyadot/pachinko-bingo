@@ -71,6 +71,9 @@ export class SoundEngine {
   private lastPreviewSeTime = 0;
   private reigniteBurstCount = 0;
   private lastReigniteBurstAt = 0;
+  private pocketChainStreak = 0;
+  private lastPocketHitAt = 0;
+  private lastKyuinAt = 0;
 
   constructor() {
     this.bgmEnabled = this.readStorageBool(STORAGE_KEY_BGM, true);
@@ -551,7 +554,7 @@ export class SoundEngine {
         this.sfxBombBlast();
         break;
       case 'POCKET_ENTER':
-        this.sfxPocketEnter(ev.col ?? 2);
+        this.sfxPocketEnter(ev.col ?? 2, ev.combo);
         break;
       case 'CELL_OPEN':
         this.sfxCellOpen();
@@ -566,7 +569,7 @@ export class SoundEngine {
         this.sfxOverdrive(false);
         break;
       case 'BINGO_LINE':
-        this.sfxBingoLine(ev.combo ?? 1);
+        this.sfxBingoLine(ev.combo ?? 1, ev.value);
         break;
       case 'FULL_BINGO_FEVER':
         this.sfxFullBingoFever();
@@ -661,11 +664,74 @@ export class SoundEngine {
     this.sfxNoiseBurst(0.28, 900, 'lowpass', 0.22);
   }
 
-  private sfxPocketEnter(col: number): void {
-    const colFreq = [392.0, 440.0, 493.88, 587.33, 659.25][col % 5] ?? 493.88;
-    // Authentic pachinko prize-chute bell chime ("チュリン♪")
-    this.playTone(colFreq * 1.5, colFreq * 2.0, 0.11, 'triangle', 0.13);
-    this.playTone(colFreq * 2.0, colFreq * 2.02, 0.14, 'sine', 0.1, 0.045);
+  private sfxPocketEnter(col: number, combo?: number): void {
+    const nowMs = performance.now();
+    if (nowMs - this.lastPocketHitAt > 1800) {
+      this.pocketChainStreak = 0;
+    }
+    this.lastPocketHitAt = nowMs;
+    this.pocketChainStreak = Math.min(12, this.pocketChainStreak + 1);
+
+    const effectiveChain = Math.max(this.pocketChainStreak, combo ?? 1);
+    const pitchBoost = Math.min(1.78, Math.pow(1.062, Math.max(0, effectiveChain - 1)));
+    const colFreq = ([392.0, 440.0, 493.88, 587.33, 659.25][col % 5] ?? 493.88) * pitchBoost;
+
+    // Authentic pachinko prize-chute bell chime ("チュリン♪") with chain pitch escalation
+    this.playTone(colFreq * 1.5, colFreq * 2.0, 0.11, 'triangle', 0.125);
+    this.playTone(colFreq * 2.0, colFreq * 2.03, 0.14, 'sine', 0.095, 0.042);
+    if (effectiveChain >= 3) {
+      // Bright harmonic overtone sparkle as chain climbs
+      this.playTone(colFreq * 3.0, colFreq * 3.04, 0.12, 'sine', 0.055, 0.055);
+    }
+  }
+
+  /**
+   * Iconic Japanese Pachinko "キュイン♪" high-harmonic confirmation chime.
+   * Crafted with a fast glassy pitch glide + shimmering dual-detuned bell harmonics.
+   */
+  private sfxKyuin(pitchScale = 1.0, doubleRing = false): void {
+    if (!this.ctx || !this.sfxGain) return;
+    const nowMs = performance.now();
+    if (!doubleRing && nowMs - this.lastKyuinAt < 180) return;
+    this.lastKyuinAt = nowMs;
+
+    const triggerPulse = (offsetSec: number, lift: number) => {
+      const s = pitchScale * lift;
+      // Fast upward glassy laser-bell glide ("キュイ-")
+      this.playTone(920 * s, 2637 * s, 0.072, 'sine', 0.115, offsetSec);
+      this.playTone(1380 * s, 3136 * s, 0.068, 'triangle', 0.065, offsetSec + 0.008);
+
+      // Shimmering high-harmonic sustain ("-ン♪") with subtle stereo-like beat detune
+      this.playTone(2637 * s, 2637 * s, 0.34, 'sine', 0.095, offsetSec + 0.062);
+      this.playTone(2654 * s, 2648 * s, 0.32, 'sine', 0.075, offsetSec + 0.066);
+      this.playTone(3951 * s, 3951 * s, 0.24, 'sine', 0.048, offsetSec + 0.078);
+      this.playTone(5274 * s, 5200 * s, 0.15, 'sine', 0.028, offsetSec + 0.092);
+    };
+
+    triggerPulse(0, 1.0);
+    if (doubleRing) {
+      triggerPulse(0.24, 1.122);
+    }
+  }
+
+  /**
+   * Escalating "ジャラジャラ" metallic ball/coin payout shimmer cascade.
+   */
+  private sfxJaraPayout(intensity: number): void {
+    if (!this.ctx || !this.sfxGain) return;
+    const count = Math.min(18, Math.max(7, Math.round(6 + intensity * 4)));
+    const clinkFreqs = [2349.3, 2637.0, 3136.0, 3520.0, 4186.0, 4698.6];
+
+    for (let i = 0; i < count; i++) {
+      const delay = 0.08 + i * 0.036 + (i % 3) * 0.008;
+      const f = clinkFreqs[(i * 2 + (i % 3)) % clinkFreqs.length] * (0.96 + (i / count) * 0.12);
+      const decayFactor = 1 - (i / count) * 0.45;
+      this.playTone(f, f * 0.985, 0.055, 'sine', 0.058 * decayFactor, delay);
+      if (i % 2 === 0) {
+        this.playTone(f * 0.5, f * 0.505, 0.045, 'triangle', 0.042 * decayFactor, delay + 0.004);
+      }
+    }
+    this.sfxNoiseBurst(0.22 + intensity * 0.08, 4200, 'bandpass', 0.055);
   }
 
   private sfxCellOpen(): void {
@@ -709,32 +775,41 @@ export class SoundEngine {
       this.lastOverdriveTriggerTime = nowMs;
     }
 
-    this.playTone(220, 660, 0.22, 'sawtooth', 0.13);
-    this.playTone(440, 1320, 0.24, 'triangle', 0.1, 0.03);
-    this.sfxNoiseBurst(0.14, 3200, 'bandpass', 0.11);
+    this.playTone(220, 660, 0.22, 'sawtooth', 0.12);
+    this.playTone(440, 1320, 0.24, 'triangle', 0.095, 0.03);
+    this.sfxNoiseBurst(0.14, 3200, 'bandpass', 0.1);
     if (awaken) {
+      this.sfxKyuin(1.06, false);
       [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-        this.playTone(f, f * 1.02, 0.22, 'triangle', 0.11, 0.06 + i * 0.045);
+        this.playTone(f, f * 1.02, 0.22, 'triangle', 0.105, 0.08 + i * 0.045);
       });
     }
   }
 
-  private sfxBingoLine(combo: number): void {
+  private sfxBingoLine(combo: number, value?: number): void {
+    const shift = combo >= 3 ? 1.189 : combo === 2 ? 1.122 : 1.0;
+    this.sfxKyuin(shift, false);
+
     const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
-    const shift = combo > 1 ? 1.122 : 1.0;
     notes.forEach((n, i) => {
-      this.playTone(n * shift, n * shift * 1.01, 0.26, 'triangle', 0.13, i * 0.055);
-      this.playTone(n * shift * 0.5, n * shift * 0.5, 0.26, 'sine', 0.08, i * 0.055);
+      this.playTone(n * shift, n * shift * 1.01, 0.26, 'triangle', 0.12, 0.05 + i * 0.052);
+      this.playTone(n * shift * 0.5, n * shift * 0.5, 0.26, 'sine', 0.075, 0.05 + i * 0.052);
     });
+
+    if (combo >= 2 || (value !== undefined && value >= 3000)) {
+      this.sfxJaraPayout(Math.min(3, Math.max(1, combo)));
+    }
   }
 
   private sfxFullBingoFever(): void {
-    // Classic Japanese Pachinko Ooatari (大当たり) fanfare cascade!
+    // Double Pachinko "キュイン♪キュイン♪" + Ooatari (大当たり) fanfare + Jara-Jara coin shower!
+    this.sfxKyuin(1.04, true);
     const fanfare = [523.25, 659.25, 783.99, 1046.5, 987.77, 1046.5, 1318.51, 1567.98];
     fanfare.forEach((f, i) => {
-      this.playTone(f, f * 1.01, 0.32, 'triangle', 0.14, i * 0.065);
-      this.playTone(f * 0.5, f * 0.5, 0.34, 'sine', 0.1, i * 0.065);
+      this.playTone(f, f * 1.01, 0.32, 'triangle', 0.13, 0.08 + i * 0.062);
+      this.playTone(f * 0.5, f * 0.5, 0.34, 'sine', 0.095, 0.08 + i * 0.062);
     });
+    this.sfxJaraPayout(3.2);
   }
 
   private sfxShopBuy(): void {

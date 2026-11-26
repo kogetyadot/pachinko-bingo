@@ -138,8 +138,9 @@ export function stepBallOnRail(ball: BallEntity, dt: number): boolean {
 }
 
 /**
- * Simulates ~0.42s of deterministic upper-rail path plus initial post-release gravity parabola
- * matching physics.ts integration (drag + wall bounces) without random jitter, returning 24 points.
+ * Simulates ~0.62s of deterministic upper-rail path plus post-release gravity parabola
+ * matching physics.ts integration (drag + wall bounces) without random jitter, returning 28 points
+ * extending cleanly down into the top pin corridor for accurate B/I/N/G/O column aiming.
  */
 export function getTrajectoryPreview(power: number): TrailPoint[] {
   const p = clampLaunchPower(power);
@@ -156,18 +157,20 @@ export function getTrajectoryPreview(power: number): TrailPoint[] {
     points.push({ x: sample.x, y: sample.y });
   }
 
-  // 12 points along initial free-flight parabola (~0.24s) matching physics substeps (8 substeps per 0.02s step)
+  // 16 points along post-release free-flight parabola (~0.44s free-flight, ~0.62s total)
+  // matching physics substeps (8 substeps per step)
   const exit = sampleRailPoint(releaseProgress);
   let x = exit.x;
   let y = exit.y;
   let { vx, vy } = computeReleaseVelocity(releaseProgress, p);
 
-  const stepDt = 0.02;
+  const freeSteps = 16;
+  const stepDt = 0.0275;
   const subDt = stepDt / 8;
   const minX = WORLD.BOARD_LEFT + WORLD.BALL_RADIUS;
   const maxX = WORLD.BOARD_RIGHT - WORLD.BALL_RADIUS;
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < freeSteps; i++) {
     for (let s = 0; s < 8; s++) {
       vy += WORLD.GRAVITY * subDt;
       vx *= 1 - 0.08 * subDt;

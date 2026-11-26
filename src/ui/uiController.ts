@@ -26,19 +26,11 @@ import {
 
 const HIGH_SCORE_STORAGE_KEY = 'neon_bingo_high_score';
 
-function formatCompactMobileScore(n: number): string {
-  if (!Number.isFinite(n)) return 'MAX';
-  const rounded = Math.floor(n);
-  if (rounded < 1_000_000) {
-    return formatScore(rounded);
-  }
-  if (rounded < 1_000_000_000) {
-    return `${(rounded / 1_000_000).toFixed(2)}M`;
-  }
-  if (rounded < 1_000_000_000_000) {
-    return `${(rounded / 1_000_000_000).toFixed(2)}B`;
-  }
-  return `${(rounded / 1_000_000_000_000).toFixed(2)}T`;
+function getOfferTagClass(tag: string): string {
+  if (tag.includes('分裂') || tag.includes('左打') || tag.includes('覚醒')) return 'tag-emerald';
+  if (tag.includes('爆') || tag.includes('再点') || tag.includes('斜め')) return 'tag-crimson';
+  if (tag.includes('倍率') || tag.includes('資金') || tag.includes('右打') || tag.includes('金')) return 'tag-gold';
+  return 'tag-cyan';
 }
 
 export class UIController {
@@ -54,6 +46,13 @@ export class UIController {
   private selectedRelicId: RelicId | null = null;
   private holdingLaunch = false;
   private holdAccumulator = 0;
+
+  // Rolling Score Odometer state
+  private displayStageScore = 0;
+  private lastObservedStageScore = 0;
+  private lastRenderedOdometerScore = -1;
+  private scorePopTimer = 0;
+  private lastOdometerStage = 0;
 
   private lastHudSignature = '';
   private lastControlSignature = '';
@@ -452,26 +451,48 @@ export class UIController {
       mobileBallPop.classList.add('is-hidden');
     });
 
-    // Canvas hover & click for Pin Customization / Relocation in SHOP
+    // Canvas hover & click for Pin Customization in SHOP and Special Pin Inspection in PLAYING
     this.canvasEl.addEventListener('pointermove', (e) => {
       const st = this.engine.getState();
-      if (st.phase !== 'SHOP') {
-        this.renderer.setHoveredPinId(null);
+      if (st.phase === 'SHOP') {
+        const world = this.renderer.canvasToWorld(e.clientX, e.clientY);
+        const pin = this.renderer.findCustomizablePinAt(st.pins, world.x, world.y, 24);
+        this.renderer.setHoveredPinId(pin ? pin.id : null);
+        this.canvasEl.style.cursor = pin ? 'pointer' : 'crosshair';
         return;
       }
-      const world = this.renderer.canvasToWorld(e.clientX, e.clientY);
-      const pin = this.renderer.findCustomizablePinAt(st.pins, world.x, world.y, 24);
-      this.renderer.setHoveredPinId(pin ? pin.id : null);
+      if (st.phase === 'PLAYING') {
+        const world = this.renderer.canvasToWorld(e.clientX, e.clientY);
+        const special = this.renderer.findSpecialPinAt(st.pins, world.x, world.y, 24);
+        this.renderer.setHoveredPinId(special ? special.id : null);
+        this.canvasEl.style.cursor = special ? 'pointer' : 'crosshair';
+        return;
+      }
+      this.renderer.setHoveredPinId(null);
+      this.canvasEl.style.cursor = 'crosshair';
     });
 
     this.canvasEl.addEventListener('pointerleave', () => {
       this.renderer.setHoveredPinId(null);
+      this.canvasEl.style.cursor = 'crosshair';
     });
 
     this.canvasEl.addEventListener('click', (e) => {
       const st = this.engine.getState();
-      if (st.phase !== 'SHOP') return;
       const world = this.renderer.canvasToWorld(e.clientX, e.clientY);
+
+      if (st.phase === 'PLAYING') {
+        const special = this.renderer.findSpecialPinAt(st.pins, world.x, world.y, 26);
+        if (special) {
+          this.renderer.setInspectedPin(special.id, 2.8);
+          this.sound.playUiClick(820);
+        } else {
+          this.renderer.setInspectedPin(null);
+        }
+        return;
+      }
+
+      if (st.phase !== 'SHOP') return;
       const pin = this.renderer.findCustomizablePinAt(st.pins, world.x, world.y, 26);
       if (!pin) return;
 
@@ -574,6 +595,7 @@ export class UIController {
 
     // Sync Active UI Views
     if (state.phase !== 'TITLE') {
+      this.updateRollingScoreOdometer(dt, state);
       this.syncGameplayHud(state);
       this.renderer.render(state, this.engine);
     }
@@ -585,6 +607,54 @@ export class UIController {
     } else if (state.phase === 'VICTORY' || state.phase === 'GAME_OVER') {
       this.syncEndModal(state);
     }
+  }
+
+  private updateRollingScoreOdometer(dt: number, state: GameStateSnapshot): void {
+    const safeDt = Math.min(0.05, Math.max(0, dt));
+    const targetScore = Math.max(0, Math.floor(state.stageScore));
+
+    // Snap cleanly on new stage, score reset, or when stage ends (receipt consistency)
+    if (
+      state.stage !== this.lastOdometerStage ||
+      targetScore < this.displayStageScore ||
+      state.phase !== 'PLAYING'
+    ) {
+      this.lastOdometerStage = state.stage;
+      this.displayStageScore = targetScore;
+      this.lastObservedStageScore = targetScore;
+      this.scorePopTimer = 0;
+    }
+
+    if (targetScore > this.lastObservedStageScore) {
+      this.scorePopTimer = 0.24;
+      this.lastObservedStageScore = targetScore;
+    }
+
+    if (this.displayStageScore < targetScore) {
+      const diff = targetScore - this.displayStageScore;
+      const step = Math.max(diff * Math.min(1, safeDt * 12), Math.ceil(diff * 0.16));
+      this.displayStageScore =
+        diff <= 8 ? targetScore : Math.min(targetScore, this.displayStageScore + step);
+    }
+
+    if (this.scorePopTimer > 0) {
+      this.scorePopTimer = Math.max(0, this.scorePopTimer - safeDt);
+    }
+
+    const rounded = Math.floor(this.displayStageScore);
+    const isPopping = this.scorePopTimer > 0;
+    const deskScoreEl = this.q('hud-stage-score');
+    const mobScoreEl = this.q('mm-score-val');
+
+    if (rounded !== this.lastRenderedOdometerScore) {
+      this.lastRenderedOdometerScore = rounded;
+      const formatted = formatScore(rounded);
+      deskScoreEl.textContent = formatted;
+      mobScoreEl.textContent = formatted;
+    }
+
+    deskScoreEl.classList.toggle('is-popping', isPopping);
+    mobScoreEl.classList.toggle('is-popping', isPopping);
   }
 
   private onPhaseChanged(state: GameStateSnapshot): void {
@@ -627,6 +697,10 @@ export class UIController {
     }
     if (isTitle) {
       this.renderer.clearVfx();
+      this.displayStageScore = 0;
+      this.lastObservedStageScore = 0;
+      this.lastRenderedOdometerScore = -1;
+      this.scorePopTimer = 0;
     }
     this.lastHudSignature = '';
     this.lastControlSignature = '';
@@ -727,9 +801,12 @@ export class UIController {
     const pulseSig = state.ownedRelics
       .map((id) => ((state.relicPulse[id] ?? 0) > 0.25 ? '1' : '0'))
       .join('');
+    const hasReach = state.reachColumns.some(Boolean);
+    const modId = state.stageModifier?.id ?? 'STANDARD';
     const hudSig = [
       state.mode,
       state.stage,
+      modId,
       Math.floor(state.stageScore),
       Math.floor(state.totalRunScore),
       state.targetScore,
@@ -739,6 +816,10 @@ export class UIController {
       state.feverActive ? 1 : 0,
       state.ballQueue.join(','),
       state.completedLineIds.length,
+      state.stats.totalBallsFired === 0 ? 0 : 1,
+      state.stats.totalBingos === 0 ? 0 : 1,
+      hasReach ? 1 : 0,
+      this.boardFocusMode ? 1 : 0,
       state.ownedRelics.join(','),
       pulseSig,
       pinSig,
@@ -759,16 +840,16 @@ export class UIController {
     this.q('mm-stage-badge').textContent =
       state.mode === 'ENDLESS' ? `END ${state.stage}` : `STG ${state.stage}/${state.maxStandardStage}`;
 
-    const scoreStr = formatScore(state.stageScore);
+    // Stage Modifier Placard + Stage 1 First-Play Auto-Dismissing Coach Pill
+    this.syncStageModifierAndCoach(state, hasReach);
+
     const targetStr = formatScore(state.targetScore);
     const pctFill = Math.min(100, (state.stageScore / Math.max(1, state.targetScore)) * 100);
 
-    this.q('hud-stage-score').textContent = scoreStr;
     this.q('hud-target-score').textContent = targetStr;
     this.q('hud-score-progress').style.width = `${pctFill.toFixed(1)}%`;
 
-    this.q('mm-score-val').textContent = formatCompactMobileScore(state.stageScore);
-    this.q('mm-target-val').textContent = formatCompactMobileScore(state.targetScore);
+    this.q('mm-target-val').textContent = targetStr;
     this.q('mm-progress-fill').style.width = `${pctFill.toFixed(1)}%`;
 
     const multStr = formatMult(state.stageMult);
@@ -929,6 +1010,70 @@ export class UIController {
     el.innerHTML = `<strong style="color:${def.accentColor}">${def.name}</strong><br>${def.description}`;
   }
 
+  private syncStageModifierAndCoach(state: GameStateSnapshot, hasReach: boolean): void {
+    const mod = state.stageModifier;
+    const plaqueEl = this.q('hud-stage-modifier');
+    const tagEl = this.q('hud-modifier-tag');
+    const nameEl = this.q('hud-modifier-name');
+    const descEl = this.q('hud-modifier-desc');
+
+    const mobStrip = this.q('mobile-stage-tip');
+    const mobBadge = this.q('mobile-tip-badge');
+    const mobText = this.q('mobile-tip-text');
+
+    mobStrip.classList.toggle('is-hidden', this.boardFocusMode);
+
+    // Stage 1 auto-dismissing micro-coach (zero modal interruption!)
+    const inStage1PreBingo =
+      state.stage === 1 &&
+      state.completedLineIds.length === 0 &&
+      state.stats.totalBingos === 0;
+
+    let mode: 'COACH_AIM' | 'COACH_REACH' | 'MODIFIER' = 'MODIFIER';
+    if (inStage1PreBingo && hasReach) {
+      mode = 'COACH_REACH';
+    } else if (inStage1PreBingo && state.stats.totalBallsFired === 0) {
+      mode = 'COACH_AIM';
+    }
+
+    plaqueEl.classList.toggle('is-coach', mode === 'COACH_AIM');
+    plaqueEl.classList.toggle('is-coach-reach', mode === 'COACH_REACH');
+    mobStrip.classList.toggle('is-coach', mode === 'COACH_AIM');
+    mobStrip.classList.toggle('is-coach-reach', mode === 'COACH_REACH');
+
+    if (mode === 'COACH_AIM') {
+      plaqueEl.style.borderColor = '#34d399';
+      mobStrip.style.borderColor = '#34d399';
+      tagEl.textContent = '初回ガイド';
+      nameEl.textContent = '狙いを定めて発射';
+      nameEl.style.color = '#6ee7b7';
+      descEl.textContent = 'ヒント：右のハンドルバーで狙いを決めて「発射」を押してみよう！';
+      mobBadge.textContent = 'ガイド';
+      mobText.textContent = 'ヒント：下のバーで狙いを決めて「発射」を押してみよう！';
+    } else if (mode === 'COACH_REACH') {
+      plaqueEl.style.borderColor = '#fb7185';
+      mobStrip.style.borderColor = '#fb7185';
+      tagEl.textContent = 'リーチ発生!';
+      nameEl.textContent = 'あと1マスでBINGO';
+      nameEl.style.color = '#fda4af';
+      descEl.textContent = 'リーチ発生！光っている入賞口を狙ってBINGOを揃えよう！';
+      mobBadge.textContent = 'REACH';
+      mobText.textContent = 'リーチ発生！光っている入賞口を狙ってBINGOを揃えよう！';
+    } else {
+      const accent = mod?.accentColor ?? '#f5b942';
+      const modName = mod?.name ?? '標準台';
+      const modDesc = mod?.shortDesc ?? '狙いの列に落としてBINGOを揃えよう！';
+      plaqueEl.style.borderColor = accent;
+      mobStrip.style.borderColor = accent;
+      tagEl.textContent = '台コンディション';
+      nameEl.textContent = modName;
+      nameEl.style.color = accent;
+      descEl.textContent = modDesc;
+      mobBadge.textContent = modName;
+      mobText.textContent = modDesc;
+    }
+  }
+
   private syncStageClearModal(state: GameStateSnapshot): void {
     const sum = state.clearSummary;
     if (!sum) return;
@@ -939,11 +1084,19 @@ export class UIController {
     this.q('clear-ball-bonus').textContent = `+¥${sum.ballBonus}`;
     this.q('clear-bingo-bonus').textContent = `+¥${sum.bingoBonus}`;
     this.q('clear-total-medals').textContent = `+¥${sum.totalMedalsEarned}`;
+
+    const nextMod = state.nextStageModifier;
+    const clearNextModEl = this.q('clear-next-modifier');
+    if (nextMod) {
+      clearNextModEl.style.borderColor = nextMod.accentColor;
+      this.q('clear-next-mod-text').textContent = `${nextMod.name} — ${nextMod.shortDesc}`;
+    }
   }
 
   private syncShopDrawer(state: GameStateSnapshot): void {
     const sig = [
       state.stage,
+      state.nextStageModifier?.id ?? 'STD',
       state.medals,
       state.rerollCost,
       this.shopTab,
@@ -951,7 +1104,9 @@ export class UIController {
       state.selectedPinBrush ?? 'none',
       state.pendingPinInventory.join(','),
       state.ownedRelics.join(','),
-      state.shopOffers.map((o) => `${o.id}:${o.sold ? 1 : 0}`).join(','),
+      state.shopOffers
+        .map((o) => `${o.id}:${o.sold ? 1 : 0}:${o.synergyReason ?? ''}:${(o.tags ?? []).join('/')}`)
+        .join(','),
     ].join('|');
 
     if (sig === this.lastShopSignature) return;
@@ -962,10 +1117,18 @@ export class UIController {
     this.q('shop-reroll-cost').textContent = `¥${state.rerollCost}`;
     (this.q('btn-reroll-shop') as HTMLButtonElement).disabled = state.medals < state.rerollCost;
 
+    const nextMod = state.nextStageModifier;
+    const shopNextModEl = this.q('shop-next-modifier');
+    if (nextMod) {
+      shopNextModEl.style.borderColor = nextMod.accentColor;
+      this.q('shop-next-mod-text').textContent = `${nextMod.name} — ${nextMod.shortDesc}`;
+    }
+
     this.overlayShop.classList.toggle('is-hidden', this.boardFocusMode);
     this.overlayShop.classList.toggle('is-board-focus', this.boardFocusMode);
     this.overlayShop.classList.toggle('is-board-tab', this.shopTab === 'BOARD' && !this.boardFocusMode);
     this.boardTuneBanner.classList.toggle('is-hidden', !this.boardFocusMode);
+    this.q('mobile-stage-tip').classList.toggle('is-hidden', this.boardFocusMode);
 
     const pendingCount = state.pendingPinInventory.length;
     const badge = this.q('shop-pending-badge');
@@ -1051,8 +1214,9 @@ export class UIController {
   }
 
   private createOfferCard(offer: ShopOffer, medals: number, relicsFull = false): HTMLElement {
+    const hasSynergy = Boolean(offer.synergyReason && offer.synergyReason.trim().length > 0);
     const card = document.createElement('div');
-    card.className = `shop-offer-card ${offer.sold ? 'is-sold' : ''}`;
+    card.className = `shop-offer-card ${offer.sold ? 'is-sold' : ''} ${hasSynergy && !offer.sold ? 'is-synergy' : ''}`;
 
     let iconSvg = '';
     if (offer.offerKind === 'PIN' && offer.pinKind) {
@@ -1067,17 +1231,31 @@ export class UIController {
     const canAfford = !offer.sold && !isRelicBlocked && medals >= offer.cost;
     const btnLabel = offer.sold ? 'SOLD' : isRelicBlocked ? '満枠 (6/6)' : `¥${offer.cost}`;
 
+    const tagsHtml = (offer.tags ?? [])
+      .slice(0, 3)
+      .map((tag) => `<span class="offer-tag-pill ${getOfferTagClass(tag)}">${tag}</span>`)
+      .join('');
+
+    const cleanSynergy = (offer.synergyReason ?? '').replace(/^★\s*/, '');
+    const synergyHtml = hasSynergy
+      ? `<div class="offer-synergy-ribbon">★相性◎｜${cleanSynergy}</div>`
+      : '';
+
     card.innerHTML = `
-      <div class="offer-card-top">
-        <div class="offer-icon-box" style="border-color:${offer.accentColor}">${iconSvg}</div>
-        <div class="offer-head-meta">
-          <div class="offer-title-row">
-            <span class="offer-rarity" style="color:${offer.accentColor}">${offer.rarityLabel}</span>
+      <div class="offer-card-main">
+        <div class="offer-card-top">
+          <div class="offer-icon-box" style="border-color:${offer.accentColor}">${iconSvg}</div>
+          <div class="offer-head-meta">
+            <div class="offer-title-row">
+              <span class="offer-rarity" style="color:${offer.accentColor}">${offer.rarityLabel}</span>
+              ${tagsHtml}
+            </div>
+            <span class="offer-name">${offer.name}</span>
           </div>
-          <span class="offer-name">${offer.name}</span>
         </div>
+        ${synergyHtml}
+        <div class="offer-desc">${offer.description}</div>
       </div>
-      <div class="offer-desc">${offer.description}</div>
       <button class="offer-buy-btn" type="button" data-shop-offer-id="${offer.id}" ${canAfford ? '' : 'disabled'}>${btnLabel}</button>
     `;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BallEntity, GameEvent, WORLD } from '../src/types';
+import { BallEntity, GameEvent, RelicId, StageModifierDef, WORLD } from '../src/types';
 import { createGameEngine, NeonPachinkoEngine } from '../src/game/engine';
 import {
   computeReleaseProgress,
@@ -14,7 +14,7 @@ import {
   resetCardAfterFeverDelay,
   resolveBallInPocket,
 } from '../src/game/bingo';
-import { BALL_CATALOG, PIN_CATALOG } from '../src/data/catalog';
+import { BALL_CATALOG, getStageModifier, PIN_CATALOG } from '../src/data/catalog';
 
 function stepUntilIdle(engine: NeonPachinkoEngine, maxSeconds = 12): number {
   const dt = 1 / 60;
@@ -54,12 +54,13 @@ describe('Neon Pachinko Rail & Aiming', () => {
     expect(rightPos.x).toBeLessThanOrEqual(515);
   });
 
-  it('produces deterministic 24-point trajectory previews with zero jitter', () => {
+  it('produces deterministic 28-point trajectory previews with zero jitter extending into top pin corridor', () => {
     const previewA = getTrajectoryPreview(0.62);
     const previewB = getTrajectoryPreview(0.62);
 
     expect(previewA).toEqual(previewB);
-    expect(previewA.length).toBe(24);
+    expect(previewA.length).toBe(28);
+    expect(previewA[previewA.length - 1].y).toBeGreaterThan(190);
     for (const pt of previewA) {
       expect(Number.isFinite(pt.x)).toBe(true);
       expect(Number.isFinite(pt.y)).toBe(true);
@@ -221,12 +222,16 @@ describe('480Hz Sub-Stepped Physics Stability', () => {
 });
 
 describe('5x5 Bingo, Bomb/Overdrive/Re-Ignite Inflation & Fever', () => {
-  function createTestMutator(ownedRelics: Array<'reignite_amp' | 'blast_furnace' | 'overdrive_arc' | 'fever_engine'> = []): BingoStateMutator {
+  function createTestMutator(
+    ownedRelics: RelicId[] = [],
+    stageModifier: StageModifierDef = getStageModifier(1)
+  ): BingoStateMutator {
     return {
       grid: createBingoCard(1),
       pockets: createInitialPockets(),
       completedLineIds: [],
       reachColumns: [false, false, false, false, false],
+      stageModifier,
       stageScore: 0,
       totalRunScore: 0,
       stageMult: 1,
@@ -235,10 +240,19 @@ describe('5x5 Bingo, Bomb/Overdrive/Re-Ignite Inflation & Fever', () => {
       feverActive: false,
       feverTimer: 0,
       feverCardResetTimer: 0,
+      feverBallGrantsThisStage: 0,
+      stageMagnetMedals: 0,
+      stageGoldMedals: 0,
       ballQueue: [],
       ownedRelics,
       hitstopTimer: 0,
       stageBingos: 0,
+      chainCount: 0,
+      chainTotalScore: 0,
+      chainTimer: 0,
+      lastShotChips: 0,
+      lastShotMult: 1,
+      lastShotPoints: 0,
       stats: {
         totalBingos: 0,
         totalFullCards: 0,
@@ -294,7 +308,8 @@ describe('5x5 Bingo, Bomb/Overdrive/Re-Ignite Inflation & Fever', () => {
     expect(multAfterFirstBomb).toBeGreaterThan(4);
 
     resolveBallInPocket(makeDummyBall('LASER'), 2, mut);
-    expect(mut.stageMult).toBeGreaterThan(multAfterFirstBomb * 2.5);
+    expect(mut.stageMult).toBeGreaterThan(multAfterFirstBomb * 2.0);
+    expect(mut.stageMult).toBeLessThan(1000);
     expect(mut.stageScore).toBeGreaterThan(10_000);
     expect(mut.events.some((e) => e.type === 'OVERDRIVE_TRIGGER')).toBe(true);
     expect(mut.events.some((e) => e.type === 'CELL_REIGNITE')).toBe(true);
@@ -329,7 +344,8 @@ describe('5x5 Bingo, Bomb/Overdrive/Re-Ignite Inflation & Fever', () => {
     expect(mut.feverActive).toBe(true);
     expect(mut.feverCardResetTimer).toBeCloseTo(0.45, 5);
     expect(mut.stats.totalFullCards).toBe(1);
-    expect(mut.ballQueue.length).toBe(4);
+    expect(mut.ballQueue.length).toBe(3);
+    expect(mut.feverBallGrantsThisStage).toBe(1);
     expect(mut.stageMult).toBeGreaterThanOrEqual(18);
     expect(mut.events.some((e) => e.type === 'FULL_BINGO_FEVER')).toBe(true);
 
@@ -731,5 +747,358 @@ describe('Shop, Pin Customization, & Stage Progression', () => {
       pinOffer.pinKind
     );
     expect(engine.getState().pendingPinInventory.length).toBe(0);
+  });
+});
+
+describe('Stage Modifiers, Inflation Caps, Live Chain Tracking, & Shop Synergies', () => {
+  function makeTestBall(
+    kind: 'STEEL' | 'BOMB' | 'LASER' | 'GOLD' = 'STEEL',
+    launchPower = 0.5
+  ): BallEntity {
+    return {
+      id: 1,
+      x: 280,
+      y: 515,
+      vx: 0,
+      vy: 200,
+      radius: WORLD.BALL_RADIUS,
+      kind,
+      megaBomb: false,
+      onRail: false,
+      railProgress: 0.6,
+      railReleaseProgress: 0.6,
+      launchPower,
+      chips: 100,
+      mult: 1.0,
+      bounces: 2,
+      splitGen: 0,
+      stuckTimer: 0,
+      lastPinId: -1,
+      lastPinTime: -1,
+      trail: [],
+      hitPinIds: [],
+    };
+  }
+
+  function makeMutator(
+    stageNum: number,
+    ownedRelics: RelicId[] = []
+  ): BingoStateMutator {
+    return {
+      grid: createBingoCard(1),
+      pockets: createInitialPockets(),
+      completedLineIds: [],
+      reachColumns: [false, false, false, false, false],
+      stageModifier: getStageModifier(stageNum),
+      stageScore: 0,
+      totalRunScore: 0,
+      stageMult: 1,
+      cardLevel: 1,
+      medals: 0,
+      feverActive: false,
+      feverTimer: 0,
+      feverCardResetTimer: 0,
+      feverBallGrantsThisStage: 0,
+      stageMagnetMedals: 0,
+      stageGoldMedals: 0,
+      ballQueue: [],
+      ownedRelics,
+      hitstopTimer: 0,
+      stageBingos: 0,
+      chainCount: 0,
+      chainTotalScore: 0,
+      chainTimer: 0,
+      lastShotChips: 0,
+      lastShotMult: 1,
+      lastShotPoints: 0,
+      stats: {
+        totalBingos: 0,
+        totalFullCards: 0,
+        highestSingleShot: 0,
+        maxStageMult: 1,
+        totalBallsFired: 0,
+        totalPinsHit: 0,
+        stagesCleared: 0,
+      },
+      events: [],
+      onRelicPulse: () => {},
+    };
+  }
+
+  it('exposes stageModifier & nextStageModifier and applies Stage 2 CENTER_BONUS & Stage 5 RIGHT_RUSH', () => {
+    const engine = createGameEngine() as NeonPachinkoEngine;
+    engine.startNewRun('STANDARD');
+    expect(engine.getState().stageModifier.id).toBe('STANDARD');
+    expect(engine.getState().nextStageModifier.id).toBe('CENTER_BONUS');
+
+    // Stage 2 CENTER_BONUS: +140 chips when entering Col 2 (N)
+    const mutStd = makeMutator(1);
+    const mutCenter = makeMutator(2);
+    resolveBallInPocket(makeTestBall('STEEL'), 2, mutStd);
+    resolveBallInPocket(makeTestBall('STEEL'), 2, mutCenter);
+    expect(mutCenter.lastShotChips).toBe(mutStd.lastShotChips + 140);
+
+    // Advance engine to Stage 5 (RIGHT_RUSH)
+    for (let s = 1; s < 5; s++) {
+      engine.debugForceStageClear();
+      engine.proceedFromStageClear();
+      engine.startNextStage();
+    }
+    expect(engine.getState().stage).toBe(5);
+    expect(engine.getState().stageModifier.id).toBe('RIGHT_RUSH');
+    expect(engine.getState().nextStageModifier.id).toBe('HIGH_VOLTAGE');
+
+    // Power >= 0.68 gets initialMult *= 1.4
+    engine.setLaunchPower(0.8);
+    expect(engine.fireBall()).toBe(true);
+    expect(engine.getState().balls[0].mult).toBeCloseTo(1.4, 4);
+
+    // Step briefly so root guard clears, then fire low power (< 0.68) -> mult stays 1.0
+    for (let f = 0; f < 5; f++) engine.step(1 / 60);
+    engine.setLaunchPower(0.4);
+    expect(engine.fireBall()).toBe(true);
+    const secondBall = engine.getState().balls[engine.getState().balls.length - 1];
+    expect(secondBall.mult).toBeCloseTo(1.0, 4);
+  });
+
+  it('applies Stage 3 LEFT_CHANCE, Stage 4 DIAGONAL_GOLD, Stage 6 HIGH_VOLTAGE, Stage 7 OVERDRIVE_SURGE, and Stage 8 GOLDEN_BOSS', () => {
+    // Stage 3 LEFT_CHANCE: launchPower <= 0.42 gets 1.6x pin chips
+    const makePin = (kind: 'NORMAL' | 'BUMPER' | 'SPINNER') => ({
+      id: 1,
+      x: 280,
+      y: 250,
+      radius: PIN_CATALOG[kind].radius,
+      kind,
+      customizable: true,
+      hitAnim: 0,
+      spinAngle: 0,
+      cooldownUntil: 0,
+    });
+
+    const leftBall: BallEntity = { ...makeTestBall('STEEL', 0.35), y: 230, chips: 0, bounces: 0 };
+    const rightBall: BallEntity = { ...makeTestBall('STEEL', 0.75), y: 230, chips: 0, bounces: 0 };
+    const leftPin = makePin('NORMAL');
+    const rightPin = makePin('NORMAL');
+    for (let f = 0; f < 5; f++) {
+      stepPhysics(1 / 60, {
+        balls: [leftBall],
+        pins: [leftPin],
+        pockets: createInitialPockets(),
+        reachColumns: [false, false, false, false, false],
+        ownedRelics: [],
+        stageModifier: getStageModifier(3),
+        simTime: f / 60,
+        nextBallId: () => 99,
+        onPinballWizardCellOpen: () => {},
+        onRelicPulse: () => {},
+        onPinHitStat: () => {},
+        events: [],
+      });
+      stepPhysics(1 / 60, {
+        balls: [rightBall],
+        pins: [rightPin],
+        pockets: createInitialPockets(),
+        reachColumns: [false, false, false, false, false],
+        ownedRelics: [],
+        stageModifier: getStageModifier(3),
+        simTime: f / 60,
+        nextBallId: () => 99,
+        onPinballWizardCellOpen: () => {},
+        onRelicPulse: () => {},
+        onPinHitStat: () => {},
+        events: [],
+      });
+    }
+    // NORMAL base hit on bounce 1 = 15 + 2 = 17; 1.6x = Math.round(27.2) = 27
+    expect(rightBall.chips).toBe(17);
+    expect(leftBall.chips).toBe(27);
+
+    // Stage 6 HIGH_VOLTAGE: BUMPER 125 + bounces*5, SPINNER x1.6
+    const hvBumperBall: BallEntity = { ...makeTestBall('STEEL', 0.5), y: 230, chips: 0, bounces: 0 };
+    const hvBumperPin = makePin('BUMPER');
+    for (let f = 0; f < 5; f++) {
+      stepPhysics(1 / 60, {
+        balls: [hvBumperBall],
+        pins: [hvBumperPin],
+        pockets: createInitialPockets(),
+        reachColumns: [false, false, false, false, false],
+        ownedRelics: [],
+        stageModifier: getStageModifier(6),
+        simTime: f / 60,
+        nextBallId: () => 99,
+        onPinballWizardCellOpen: () => {},
+        onRelicPulse: () => {},
+        onPinHitStat: () => {},
+        events: [],
+      });
+    }
+    expect(hvBumperBall.chips).toBe(130); // 125 + 1*5
+
+    const hvSpinnerBall: BallEntity = { ...makeTestBall('STEEL', 0.5), y: 230, chips: 0, mult: 1.0, bounces: 0 };
+    const hvSpinnerPin = makePin('SPINNER');
+    for (let f = 0; f < 5; f++) {
+      stepPhysics(1 / 60, {
+        balls: [hvSpinnerBall],
+        pins: [hvSpinnerPin],
+        pockets: createInitialPockets(),
+        reachColumns: [false, false, false, false, false],
+        ownedRelics: [],
+        stageModifier: getStageModifier(6),
+        simTime: f / 60,
+        nextBallId: () => 99,
+        onPinballWizardCellOpen: () => {},
+        onRelicPulse: () => {},
+        onPinHitStat: () => {},
+        events: [],
+      });
+    }
+    expect(hvSpinnerBall.mult).toBeCloseTo(1.6, 4);
+
+    // Stage 4 DIAGONAL_GOLD: 2.0x diagonal line score
+    const setupDiag = (stageNum: number) => {
+      const m = makeMutator(stageNum);
+      m.grid[1][1].opened = true;
+      m.grid[2][2].opened = true;
+      m.grid[3][3].opened = true;
+      m.grid[4][4].opened = true;
+      resolveBallInPocket(makeTestBall('STEEL'), 0, m);
+      return m.events.find((e) => e.type === 'BINGO_LINE')?.value ?? 0;
+    };
+    const diagStd = setupDiag(1);
+    const diagGold = setupDiag(4);
+    const diagBoss = setupDiag(8);
+    expect(diagGold).toBe(diagStd * 2);
+    expect(diagBoss).toBe(Math.round(diagStd * 1.5));
+
+    // Stage 7 OVERDRIVE_SURGE: +1.5 extra stageMult on Overdrive trigger
+    const runOverdrive = (stageNum: number) => {
+      const m = makeMutator(stageNum);
+      for (let r = 0; r < 5; r++) m.grid[r][2].opened = true;
+      m.pockets[2].overdrive = true;
+      resolveBallInPocket(makeTestBall('STEEL'), 2, m);
+      return m.stageMult;
+    };
+    const odStd = runOverdrive(1);
+    const odSurge = runOverdrive(7);
+    expect(odSurge).toBeCloseTo(odStd + 1.5, 2);
+  });
+
+  it('caps feverBallGrantsThisStage at 2 per stage and caps medal_magnet at +60 medals per stage', () => {
+    const mut = makeMutator(1, ['fever_engine', 'medal_magnet']);
+
+    // Trigger Full Bingo Fever 3 times in the same stage
+    for (let cycle = 0; cycle < 3; cycle++) {
+      mut.feverCardResetTimer = 0;
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          mut.grid[r][c].opened = !(r === 0 && c === 0);
+        }
+      }
+      mut.completedLineIds = [];
+      const queueBefore = mut.ballQueue.length;
+      const multBefore = mut.stageMult;
+      resolveBallInPocket(makeTestBall('STEEL'), 0, mut);
+
+      if (cycle < 2) {
+        expect(mut.ballQueue.length).toBe(queueBefore + 3);
+      } else {
+        // 3rd Full Card grants NO additional balls, stopping infinite stage stalls
+        expect(mut.ballQueue.length).toBe(queueBefore);
+      }
+      // Still grants Full Card jackpot, feverActive, and mult surge
+      expect(mut.feverActive).toBe(true);
+      expect(mut.stageMult).toBeGreaterThan(multBefore);
+      resetCardAfterFeverDelay(mut);
+    }
+
+    expect(mut.feverBallGrantsThisStage).toBe(2);
+    expect(mut.cardLevel).toBe(4);
+    // 3 full-card triggers opened 12 lines * 3 (actually 36 line completions!), capped cleanly at 60 medals
+    expect(mut.stageMagnetMedals).toBe(60);
+    expect(mut.medals).toBe(60);
+  });
+
+  it('tracks live chainCount, chainTotalScore, chainTimer decay/reset, and lastShot formula values', () => {
+    const engine = createGameEngine() as NeonPachinkoEngine;
+    engine.startNewRun('STANDARD');
+    engine.setLaunchPower(0.5);
+    expect(engine.fireBall()).toBe(true);
+
+    // Step until ball enters a pocket
+    const dt = 1 / 60;
+    let pocketed = false;
+    for (let f = 0; f < 60 * 10; f++) {
+      engine.step(dt);
+      const st = engine.getState();
+      if (st.balls.length === 0) {
+        pocketed = true;
+        expect(st.chainCount).toBeGreaterThanOrEqual(1);
+        expect(st.chainTotalScore).toBeGreaterThan(0);
+        expect(st.chainTimer).toBeGreaterThan(2.5);
+        expect(st.lastShotChips).toBeGreaterThan(0);
+        expect(st.lastShotMult).toBeGreaterThanOrEqual(1);
+        expect(st.lastShotPoints).toBeGreaterThan(0);
+        break;
+      }
+    }
+    expect(pocketed).toBe(true);
+
+    // Advance 3.0s with zero active balls -> chainTimer hits 0 and chain resets
+    for (let f = 0; f < 185; f++) {
+      engine.step(dt);
+      if (engine.getState().phase !== 'PLAYING') break;
+    }
+    const afterDecay = engine.getState();
+    if (afterDecay.phase === 'PLAYING') {
+      expect(afterDecay.chainTimer).toBe(0);
+      expect(afterDecay.chainCount).toBe(0);
+      expect(afterDecay.chainTotalScore).toBe(0);
+    }
+  });
+
+  it('populates Japanese tags on all Shop offers and dynamically activates synergyReason after purchase', () => {
+    const engine = createGameEngine() as NeonPachinkoEngine;
+    engine.startNewRun('STANDARD');
+    engine.debugForceStageClear();
+    engine.proceedFromStageClear();
+    engine.debugGrantMedals(1000);
+
+    // Verify all 6 shop offers have non-empty Japanese archetype tags
+    for (const offer of engine.getState().shopOffers) {
+      expect(offer.tags).toBeDefined();
+      expect(offer.tags!.length).toBeGreaterThanOrEqual(1);
+    }
+
+    // Reroll until we get a shop containing both BOMB_PIN and (blast_furnace or reignite_amp)
+    let foundPair = false;
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const offers = engine.getState().shopOffers;
+      const bombPinOffer = offers.find(
+        (o) => o.offerKind === 'PIN' && o.pinKind === 'BOMB_PIN' && !o.sold
+      );
+      const bombRelicOffer = offers.find(
+        (o) =>
+          o.offerKind === 'RELIC' &&
+          (o.relicId === 'blast_furnace' || o.relicId === 'reignite_amp') &&
+          !o.sold
+      );
+      if (bombPinOffer && bombRelicOffer) {
+        // Before purchasing BOMB_PIN, starter deck alone does not light up blast_furnace / reignite_amp
+        expect(bombRelicOffer.synergyReason).toBeUndefined();
+
+        // Buying BOMB_PIN immediately lights up synergyReason on the relic offer sitting next to it!
+        expect(engine.buyShopOffer(bombPinOffer.id)).toBe(true);
+        const updatedRelic = engine
+          .getState()
+          .shopOffers.find((o) => o.id === bombRelicOffer.id)!;
+        expect(updatedRelic.synergyReason).toBeDefined();
+        expect(updatedRelic.synergyReason).toContain('★');
+        foundPair = true;
+        break;
+      }
+      engine.debugGrantMedals(50);
+      engine.rerollShop();
+    }
+    expect(foundPair).toBe(true);
   });
 });

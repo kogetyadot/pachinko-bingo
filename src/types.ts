@@ -176,6 +176,24 @@ export interface GameEvent {
 
 export type ShopOfferKind = 'PIN' | 'BALL' | 'RELIC';
 
+export type StageModifierId =
+  | 'STANDARD'
+  | 'CENTER_BONUS'
+  | 'LEFT_CHANCE'
+  | 'DIAGONAL_GOLD'
+  | 'RIGHT_RUSH'
+  | 'HIGH_VOLTAGE'
+  | 'OVERDRIVE_SURGE'
+  | 'GOLDEN_BOSS';
+
+export interface StageModifierDef {
+  id: StageModifierId;
+  name: string;
+  shortDesc: string;
+  accentColor: string;
+  preferredRoute?: 'LEFT' | 'CENTER' | 'RIGHT';
+}
+
 export interface ShopOffer {
   id: string;
   offerKind: ShopOfferKind;
@@ -188,6 +206,8 @@ export interface ShopOffer {
   accentColor: string;
   rarityLabel: string;
   sold: boolean;
+  tags?: string[];
+  synergyReason?: string;
 }
 
 export interface RunStats {
@@ -216,6 +236,8 @@ export interface GameStateSnapshot {
   mode: GameMode;
   stage: number;
   maxStandardStage: number;
+  stageModifier: StageModifierDef;
+  nextStageModifier: StageModifierDef;
   stageScore: number;
   totalRunScore: number;
   targetScore: number;
@@ -246,6 +268,12 @@ export interface GameStateSnapshot {
   simTime: number;
   hitstopTimer: number;
   stageEndDelayTimer: number;
+  chainCount: number;
+  chainTotalScore: number;
+  chainTimer: number;
+  lastShotChips: number;
+  lastShotMult: number;
+  lastShotPoints: number;
 }
 
 /** Logical coordinate constants shared by Physics, Bingo, Renderer, and Input */

@@ -6,17 +6,20 @@ import {
   PocketState,
   RelicId,
   RunStats,
+  StageModifierDef,
   WORLD,
 } from '../types';
 import { ALL_BINGO_LINES, POCKET_LABELS } from '../data/catalog';
 
 const MAX_STAGE_MULT = 1_000_000_000;
+const CHAIN_RESET_DURATION = 2.8;
 
 export interface BingoStateMutator {
   grid: BingoCell[][];
   pockets: PocketState[];
   completedLineIds: string[];
   reachColumns: boolean[];
+  stageModifier: StageModifierDef;
   stageScore: number;
   totalRunScore: number;
   stageMult: number;
@@ -25,10 +28,19 @@ export interface BingoStateMutator {
   feverActive: boolean;
   feverTimer: number;
   feverCardResetTimer: number;
+  feverBallGrantsThisStage: number;
+  stageMagnetMedals: number;
+  stageGoldMedals: number;
   ballQueue: BallKind[];
   ownedRelics: RelicId[];
   hitstopTimer: number;
   stageBingos: number;
+  chainCount: number;
+  chainTotalScore: number;
+  chainTimer: number;
+  lastShotChips: number;
+  lastShotMult: number;
+  lastShotPoints: number;
   stats: RunStats;
   events: GameEvent[];
   onRelicPulse: (relicId: RelicId) => void;
@@ -294,10 +306,10 @@ function applyReigniteCell(
   cell.reigniteCount += 1;
   cell.reigniteAnim = 1.0;
 
-  const bonusChips = 60 * state.cardLevel;
+  const bonusChips = 50 * state.cardLevel;
   const hasAmp = state.ownedRelics.includes('reignite_amp');
   if (hasAmp) {
-    state.stageMult = clampStageMult(state.stageMult * 1.18 + 0.2);
+    state.stageMult = clampStageMult(state.stageMult * 1.05 + 0.65);
     state.onRelicPulse('reignite_amp');
     const center = getBingoCellCenter(cell.row, cell.col);
     state.events.push({
@@ -305,11 +317,11 @@ function applyReigniteCell(
       x: center.x,
       y: center.y - 16,
       relicId: 'reignite_amp',
-      text: 'RE-IGNITE x1.18!',
+      text: '再点火 x1.05 +0.65!',
       color: '#ff2a5f',
     });
   } else {
-    state.stageMult = clampStageMult(state.stageMult + 0.35);
+    state.stageMult = clampStageMult(state.stageMult + 0.25);
   }
 
   const center = getBingoCellCenter(cell.row, cell.col);
@@ -371,21 +383,28 @@ function triggerOverdriveSurge(
 ): number {
   const pocket = state.pockets[col];
   const hasOverdriveArc = state.ownedRelics.includes('overdrive_arc');
-  const multFactor = hasOverdriveArc ? 2.4 : 1.75;
 
   pocket.overdriveLevel += 1;
-  state.stageMult = clampStageMult(state.stageMult * multFactor);
-
+  let overdriveText: string;
   if (hasOverdriveArc) {
+    state.stageMult = clampStageMult(state.stageMult * 1.35 + 2.0);
+    overdriveText = '過電流覚醒 x1.35!';
     state.onRelicPulse('overdrive_arc');
     state.events.push({
       type: 'RELIC_PROC',
       x: pocket.xCenter,
       y: WORLD.POCKET_TOP - 22,
       relicId: 'overdrive_arc',
-      text: '過電流 x2.4!',
+      text: overdriveText,
       color: '#00f0ff',
     });
+  } else {
+    state.stageMult = clampStageMult(state.stageMult * 1.2 + 1.2);
+    overdriveText = '列覚醒 x1.2 +1.2!';
+  }
+
+  if (state.stageModifier.id === 'OVERDRIVE_SURGE') {
+    state.stageMult = clampStageMult(state.stageMult + 1.5);
   }
 
   state.events.push({
@@ -394,7 +413,7 @@ function triggerOverdriveSurge(
     y: WORLD.POCKET_TOP + 20,
     col,
     mult: state.stageMult,
-    text: `OVERDRIVE x${multFactor}!`,
+    text: overdriveText,
     color: '#ffd000',
   });
 
@@ -493,6 +512,14 @@ function checkAndResolveNewBingos(
     let lineBase = 350 * state.cardLevel;
     let multGain = 1.0;
 
+    if (line.kind === 'DIAG' && state.stageModifier.id === 'DIAGONAL_GOLD') {
+      lineBase *= 2.0;
+    }
+
+    if (state.stageModifier.id === 'GOLDEN_BOSS') {
+      lineBase *= 1.5;
+    }
+
     if (line.kind === 'DIAG' && hasDiagKing) {
       lineBase *= 2.5;
       multGain += 2.5;
@@ -515,20 +542,6 @@ function checkAndResolveNewBingos(
     state.stageScore += lineScore;
     state.totalRunScore += lineScore;
 
-    if (hasMedalMagnet) {
-      state.medals += 16;
-      state.onRelicPulse('medal_magnet');
-      state.events.push({
-        type: 'RELIC_PROC',
-        x: WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
-        y: WORLD.BINGO_TOP - 10,
-        relicId: 'medal_magnet',
-        value: 16,
-        text: '+16¥',
-        color: '#ffb800',
-      });
-    }
-
     const midCell = line.cells[2];
     const midCenter = getBingoCellCenter(midCell[0], midCell[1]);
     state.events.push({
@@ -542,6 +555,27 @@ function checkAndResolveNewBingos(
       text: newLines.length > 1 ? `${newLines.length}x BINGO!` : 'BINGO!',
       color: '#ffd000',
     });
+  }
+
+  if (hasMedalMagnet) {
+    const medalReward = Math.min(
+      10 * newLines.length,
+      Math.max(0, 60 - state.stageMagnetMedals)
+    );
+    if (medalReward > 0) {
+      state.medals += medalReward;
+      state.stageMagnetMedals += medalReward;
+      state.onRelicPulse('medal_magnet');
+      state.events.push({
+        type: 'RELIC_PROC',
+        x: WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
+        y: WORLD.BINGO_TOP - 10,
+        relicId: 'medal_magnet',
+        value: medalReward,
+        text: `+¥${medalReward}`,
+        color: '#ffb800',
+      });
+    }
   }
 
   state.hitstopTimer = Math.max(
@@ -561,20 +595,31 @@ function checkAndResolveFullBingoFever(
   state.feverTimer = 10.0;
 
   const hasFeverEngine = state.ownedRelics.includes('fever_engine');
+  state.stageMult = clampStageMult(
+    state.stageMult * (hasFeverEngine ? 1.35 : 1.15)
+  );
+
+  let grantedBalls = false;
+  if (state.feverBallGrantsThisStage < 2) {
+    state.feverBallGrantsThisStage += 1;
+    grantedBalls = true;
+    if (hasFeverEngine) {
+      state.ballQueue.push('BOMB', 'MULTI', 'LASER');
+    } else {
+      state.ballQueue.push('BOMB', 'MULTI');
+    }
+  }
+
   if (hasFeverEngine) {
-    state.stageMult = clampStageMult(state.stageMult * 1.5);
-    state.ballQueue.push('BOMB', 'MULTI', 'LASER', 'GOLD');
     state.onRelicPulse('fever_engine');
     state.events.push({
       type: 'RELIC_PROC',
       x: WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
       y: WORLD.BINGO_TOP + 28,
       relicId: 'fever_engine',
-      text: '永久機関 +4球 & x1.5!',
+      text: grantedBalls ? '永久機関 +3球 & x1.35!' : '永久機関 x1.35!',
       color: '#ffd000',
     });
-  } else {
-    state.ballQueue.push('BOMB', 'MULTI');
   }
 
   const jackpot = Math.round(
@@ -624,11 +669,17 @@ export function resolveBallInPocket(
   col: number,
   state: BingoStateMutator
 ): void {
+  const scoreBefore = state.stageScore;
   const pocket = state.pockets[col];
   pocket.hitAnim = 1.0;
 
   const sourceX = pocket.xCenter;
   const sourceY = WORLD.POCKET_TOP + 22;
+
+  // Stage 2 CENTER_BONUS modifier: +140 chips when entering Col 2 (N)
+  if (state.stageModifier.id === 'CENTER_BONUS' && col === 2) {
+    ball.chips += 140;
+  }
 
   // Check reach status BEFORE opening cells this shot
   const anyReachActive = state.reachColumns.some((r) => r);
@@ -723,7 +774,11 @@ export function resolveBallInPocket(
     // STEEL / MULTI / GOLD
     if (ball.kind === 'GOLD') {
       ballChips *= 3;
-      state.medals += 10;
+      const goldGrant = Math.min(10, Math.max(0, 40 - state.stageGoldMedals));
+      if (goldGrant > 0) {
+        state.medals += goldGrant;
+        state.stageGoldMedals += goldGrant;
+      }
     }
 
     if (!wasOverdrive) {
@@ -755,9 +810,16 @@ export function resolveBallInPocket(
 
   checkColumnOverdriveAwakenings(state);
 
-  const shotPoints = Math.round(
-    (ballChips + openedCellsChips) * ball.mult * state.stageMult * reachBonus
+  const totalChips = ballChips + openedCellsChips;
+  const effectiveMult = Number(
+    (ball.mult * state.stageMult * reachBonus).toFixed(2)
   );
+  const shotPoints = Math.round(
+    totalChips * ball.mult * state.stageMult * reachBonus
+  );
+  state.lastShotChips = totalChips;
+  state.lastShotMult = effectiveMult;
+  state.lastShotPoints = shotPoints;
   state.stageScore += shotPoints;
   state.totalRunScore += shotPoints;
   if (shotPoints > state.stats.highestSingleShot) {
@@ -779,6 +841,13 @@ export function resolveBallInPocket(
   checkAndResolveNewBingos(state, reachBonus);
   checkAndResolveFullBingoFever(state, reachBonus);
 
+  const totalAdded = state.stageScore - scoreBefore;
+  if (totalAdded > 0) {
+    state.chainCount += 1;
+    state.chainTotalScore += totalAdded;
+    state.chainTimer = CHAIN_RESET_DURATION;
+  }
+
   if (state.stageMult > state.stats.maxStageMult) {
     state.stats.maxStageMult = state.stageMult;
   }
@@ -793,6 +862,7 @@ export function triggerLightningCellOpen(
   state: BingoStateMutator,
   ball?: BallEntity
 ): void {
+  const scoreBefore = state.stageScore;
   const sourceX = ball?.x ?? WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2;
   const sourceY = ball?.y ?? WORLD.PIN_AREA_BOTTOM;
   const anyReach = state.reachColumns.some((r) => r);
@@ -830,6 +900,13 @@ export function triggerLightningCellOpen(
       state.stageScore += bonus;
       state.totalRunScore += bonus;
     }
+  }
+
+  const totalAdded = state.stageScore - scoreBefore;
+  if (totalAdded > 0) {
+    state.chainCount += 1;
+    state.chainTotalScore += totalAdded;
+    state.chainTimer = CHAIN_RESET_DURATION;
   }
 
   if (state.stageMult > state.stats.maxStageMult) {

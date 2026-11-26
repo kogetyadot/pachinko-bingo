@@ -4,6 +4,7 @@ import {
   PinEntity,
   PocketState,
   RelicId,
+  StageModifierDef,
   WORLD,
 } from '../types';
 import { BALL_CATALOG, PIN_CATALOG } from '../data/catalog';
@@ -20,6 +21,7 @@ export interface PhysicsStepContext {
   pockets: PocketState[];
   reachColumns: boolean[];
   ownedRelics: RelicId[];
+  stageModifier?: StageModifierDef;
   simTime: number;
   nextBallId: () => number;
   onPinballWizardCellOpen: (ball: BallEntity) => void;
@@ -204,6 +206,8 @@ function resolvePinInteraction(
   const nx = dist > 1e-5 ? dx / dist : 0;
   const ny = dist > 1e-5 ? dy / dist : -1;
 
+  const modId = ctx.stageModifier?.id;
+
   // SPINNER is a non-colliding pass-through sensor
   if (pin.kind === 'SPINNER') {
     if (!ball.hitPinIds.includes(pin.id)) {
@@ -211,8 +215,13 @@ function resolvePinInteraction(
       ball.lastPinId = pin.id;
       ball.lastPinTime = ctx.simTime;
       ball.bounces += 1;
-      ball.chips += 25;
-      ball.mult = Number((ball.mult * 1.4).toFixed(4));
+      let spinChips = 25;
+      if (modId === 'LEFT_CHANCE' && ball.launchPower <= 0.42) {
+        spinChips = Math.round(spinChips * 1.6);
+      }
+      const spinnerMult = modId === 'HIGH_VOLTAGE' ? 1.6 : 1.4;
+      ball.chips += spinChips;
+      ball.mult = Number((ball.mult * spinnerMult).toFixed(4));
       pin.spinAngle += 2.8;
       pin.hitAnim = 1;
       ctx.onPinHitStat();
@@ -221,10 +230,10 @@ function resolvePinInteraction(
         type: 'PIN_HIT',
         x: pin.x,
         y: pin.y,
-        value: 25,
+        value: spinChips,
         mult: ball.mult,
         combo: ball.bounces,
-        text: 'SPIN x1.4',
+        text: `SPIN x${spinnerMult}`,
         color: PIN_CATALOG.SPINNER.color,
       });
 
@@ -293,27 +302,35 @@ function resolvePinInteraction(
   ctx.onPinHitStat();
 
   const wasMulti = ball.kind === 'MULTI';
+  const leftChanceActive = modId === 'LEFT_CHANCE' && ball.launchPower <= 0.42;
   let hitChips = 0;
   let hitText: string | undefined;
 
   switch (pin.kind) {
     case 'NORMAL':
       hitChips = 15 + ball.bounces * 2;
+      if (leftChanceActive) hitChips = Math.round(hitChips * 1.6);
       ball.chips += hitChips;
       break;
     case 'BUMPER':
-      hitChips = 75 + ball.bounces * 4;
+      hitChips =
+        modId === 'HIGH_VOLTAGE'
+          ? 125 + ball.bounces * 5
+          : 75 + ball.bounces * 4;
+      if (leftChanceActive) hitChips = Math.round(hitChips * 1.6);
       ball.chips += hitChips;
       ball.bounces += 1;
       hitText = `+${hitChips}`;
       break;
     case 'MAGNET':
       hitChips = 40;
+      if (leftChanceActive) hitChips = Math.round(hitChips * 1.6);
       ball.chips += hitChips;
-      hitText = '+40';
+      hitText = `+${hitChips}`;
       break;
     case 'BOMB_PIN':
       hitChips = 35;
+      if (leftChanceActive) hitChips = Math.round(hitChips * 1.6);
       ball.chips += hitChips;
       if (!ball.hitPinIds.includes(pin.id)) {
         ball.hitPinIds.push(pin.id);
@@ -351,6 +368,7 @@ function resolvePinInteraction(
       break;
     case 'SPLITTER':
       hitChips = 25;
+      if (leftChanceActive) hitChips = Math.round(hitChips * 1.6);
       ball.chips += hitChips;
       if (!ball.hitPinIds.includes(pin.id) && ctx.simTime >= pin.cooldownUntil) {
         ball.hitPinIds.push(pin.id);

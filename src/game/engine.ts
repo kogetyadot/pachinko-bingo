@@ -20,6 +20,7 @@ import {
 import {
   BALL_CATALOG,
   createDefaultPinLayout,
+  getStageModifier,
   getStageTargetScore,
   PIN_CATALOG,
   RELIC_CATALOG,
@@ -70,6 +71,38 @@ const SHOP_PIN_POOL: PinKind[] = [
 ];
 
 const SHOP_BALL_POOL: BallKind[] = ['BOMB', 'MULTI', 'LASER', 'GOLD'];
+
+const PIN_TAGS: Record<PinKind, string[]> = {
+  NORMAL: ['標準'],
+  SPLITTER: ['分裂'],
+  BOMB_PIN: ['爆破', '再点火'],
+  BUMPER: ['高チップ'],
+  SPINNER: ['倍率'],
+  MAGNET: ['リーチ誘導'],
+};
+
+const BALL_TAGS: Record<BallKind, string[]> = {
+  STEEL: ['標準'],
+  BOMB: ['爆破', '再点火'],
+  MULTI: ['分裂'],
+  LASER: ['貫通', '再点火'],
+  GOLD: ['資金', '覚醒2連'],
+};
+
+const RELIC_TAGS: Record<RelicId, string[]> = {
+  reignite_amp: ['再点火', '倍率'],
+  prism_core: ['分裂', '倍率'],
+  blast_furnace: ['爆破', '3x3拡大'],
+  overdrive_arc: ['列覚醒', '電撃'],
+  pinball_wizard: ['高コンボ', '電撃'],
+  diagonal_king: ['斜めBINGO', '倍率'],
+  right_stroke: ['右打ち', '倍率'],
+  left_trick: ['左打ち', '分裂'],
+  reach_radar: ['リーチ', '全スコア'],
+  fever_engine: ['FEVER', '増球'],
+  medal_magnet: ['資金', 'BINGO'],
+  extra_magazine: ['増球', 'ボム'],
+};
 
 function createEmptyStats(): RunStats {
   return {
@@ -202,6 +235,15 @@ export class NeonPachinkoEngine implements IGameEngine {
   private hitstopTimer = 0;
   private stageEndDelayTimer = 0;
   private stageBingos = 0;
+  private feverBallGrantsThisStage = 0;
+  private stageMagnetMedals = 0;
+  private stageGoldMedals = 0;
+  private chainCount = 0;
+  private chainTotalScore = 0;
+  private chainTimer = 0;
+  private lastShotChips = 0;
+  private lastShotMult = 1;
+  private lastShotPoints = 0;
   private nextBallEntityId = 1;
   private offerCounter = 1;
   private eventQueue: GameEvent[] = [];
@@ -216,6 +258,7 @@ export class NeonPachinkoEngine implements IGameEngine {
       pockets: this.pockets,
       completedLineIds: this.completedLineIds,
       reachColumns: this.reachColumns,
+      stageModifier: getStageModifier(this.stage),
       stageScore: this.stageScore,
       totalRunScore: this.totalRunScore,
       stageMult: this.stageMult,
@@ -224,10 +267,19 @@ export class NeonPachinkoEngine implements IGameEngine {
       feverActive: this.feverActive,
       feverTimer: this.feverTimer,
       feverCardResetTimer: this.feverCardResetTimer,
+      feverBallGrantsThisStage: this.feverBallGrantsThisStage,
+      stageMagnetMedals: this.stageMagnetMedals,
+      stageGoldMedals: this.stageGoldMedals,
       ballQueue: this.ballQueue,
       ownedRelics: this.ownedRelics,
       hitstopTimer: this.hitstopTimer,
       stageBingos: this.stageBingos,
+      chainCount: this.chainCount,
+      chainTotalScore: this.chainTotalScore,
+      chainTimer: this.chainTimer,
+      lastShotChips: this.lastShotChips,
+      lastShotMult: this.lastShotMult,
+      lastShotPoints: this.lastShotPoints,
       stats: this.stats,
       events: this.eventQueue,
       onRelicPulse: (relicId) => {
@@ -249,9 +301,18 @@ export class NeonPachinkoEngine implements IGameEngine {
     this.feverActive = mut.feverActive;
     this.feverTimer = mut.feverTimer;
     this.feverCardResetTimer = mut.feverCardResetTimer;
+    this.feverBallGrantsThisStage = mut.feverBallGrantsThisStage;
+    this.stageMagnetMedals = mut.stageMagnetMedals;
+    this.stageGoldMedals = mut.stageGoldMedals;
     this.ballQueue = mut.ballQueue;
     this.hitstopTimer = mut.hitstopTimer;
     this.stageBingos = mut.stageBingos;
+    this.chainCount = mut.chainCount;
+    this.chainTotalScore = mut.chainTotalScore;
+    this.chainTimer = mut.chainTimer;
+    this.lastShotChips = mut.lastShotChips;
+    this.lastShotMult = mut.lastShotMult;
+    this.lastShotPoints = mut.lastShotPoints;
   }
 
   private syncGridLineStates(): void {
@@ -293,6 +354,15 @@ export class NeonPachinkoEngine implements IGameEngine {
     this.grid = createBingoCard(1);
     this.completedLineIds = [];
     this.stageBingos = 0;
+    this.feverBallGrantsThisStage = 0;
+    this.stageMagnetMedals = 0;
+    this.stageGoldMedals = 0;
+    this.chainCount = 0;
+    this.chainTotalScore = 0;
+    this.chainTimer = 0;
+    this.lastShotChips = 0;
+    this.lastShotMult = 1;
+    this.lastShotPoints = 0;
     this.clearSummary = null;
     this.stageEndDelayTimer = 0;
     this.hitstopTimer = 0;
@@ -302,6 +372,208 @@ export class NeonPachinkoEngine implements IGameEngine {
     }
     this.buildStageBallQueue();
     this.syncGridLineStates();
+  }
+
+  private computeOfferSynergyReason(offer: ShopOffer): string | undefined {
+    const nextMod = getStageModifier(this.stage + 1);
+    const hasRelic = (id: RelicId): boolean => this.ownedRelics.includes(id);
+    const hasPin = (kind: PinKind): boolean =>
+      this.pins.some((p) => p.kind === kind) ||
+      this.pendingPinInventory.includes(kind);
+    const hasLeftPin = (kind: PinKind): boolean =>
+      this.pins.some((p) => p.kind === kind && p.x < 240);
+    const countBall = (kind: BallKind): number =>
+      this.deckTemplate.filter((b) => b === kind).length;
+    const countPin = (kind: PinKind): number =>
+      this.pins.filter((p) => p.kind === kind).length +
+      this.pendingPinInventory.filter((k) => k === kind).length;
+
+    const bombCount = countBall('BOMB');
+    const multiCount = countBall('MULTI');
+    const hasLaser = countBall('LASER') > 0;
+    const hasGold = countBall('GOLD') > 0;
+
+    if (offer.offerKind === 'RELIC' && offer.relicId) {
+      switch (offer.relicId) {
+        case 'reignite_amp':
+          if (
+            hasPin('BOMB_PIN') ||
+            bombCount >= 2 ||
+            hasLaser ||
+            hasRelic('blast_furnace')
+          ) {
+            return '★所持ボム/レーザーと爆破再点火コンボ！';
+          }
+          break;
+        case 'prism_core':
+          if (hasPin('SPLITTER') || multiCount >= 2 || hasRelic('left_trick')) {
+            return '★分裂系と組み合わせて倍率爆発！';
+          }
+          break;
+        case 'blast_furnace':
+          if (
+            hasPin('BOMB_PIN') ||
+            bombCount >= 2 ||
+            hasRelic('reignite_amp')
+          ) {
+            return '★3×3全域爆破で一撃ビンゴ＆再点火！';
+          }
+          break;
+        case 'overdrive_arc':
+          if (nextMod.id === 'OVERDRIVE_SURGE') {
+            return '★次ステージ「覚醒加速台」と超シナジー！';
+          }
+          if (hasLaser || hasGold) {
+            return '★列覚醒ルートで倍率が一気に加速！';
+          }
+          break;
+        case 'right_stroke':
+          if (nextMod.id === 'RIGHT_RUSH') {
+            return '★次ステージ「右打ちRUSH台」と完璧一致！';
+          }
+          break;
+        case 'left_trick':
+          if (nextMod.id === 'LEFT_CHANCE') {
+            return '★次ステージ「左打ちチャンス台」で超強化！';
+          }
+          if (hasLeftPin('SPLITTER') || hasRelic('prism_core')) {
+            return '★左サイドの分裂ビルドと組み合わせて玉数爆発！';
+          }
+          break;
+        case 'diagonal_king':
+          if (nextMod.id === 'DIAGONAL_GOLD') {
+            return '★次ステージ「斜めビンゴ2倍」と超シナジー！';
+          }
+          if (nextMod.id === 'GOLDEN_BOSS') {
+            return '★最終戦「全BINGO 1.5倍」で超高配当！';
+          }
+          break;
+        case 'pinball_wizard':
+          if (
+            nextMod.id === 'HIGH_VOLTAGE' ||
+            countPin('BUMPER') >= 2 ||
+            hasPin('SPLITTER')
+          ) {
+            return '★高反発・分裂ビルドで電撃開放が連発！';
+          }
+          break;
+        case 'reach_radar':
+          if (hasPin('MAGNET') || nextMod.id === 'GOLDEN_BOSS') {
+            return '★リーチ誘導・高配当台で全スコア×1.6！';
+          }
+          break;
+        case 'fever_engine':
+          if (
+            hasRelic('blast_furnace') ||
+            hasRelic('overdrive_arc') ||
+            hasPin('BOMB_PIN')
+          ) {
+            return '★高速開放ビルドでFULL BINGO連発！';
+          }
+          break;
+        case 'medal_magnet':
+          if (
+            nextMod.id === 'DIAGONAL_GOLD' ||
+            nextMod.id === 'GOLDEN_BOSS' ||
+            hasRelic('blast_furnace')
+          ) {
+            return '★大量BINGO成立でショップ資金が加速！';
+          }
+          break;
+        case 'extra_magazine':
+          if (hasRelic('blast_furnace') || hasRelic('reignite_amp')) {
+            return '★追加ボム球が所持爆破レリックと即連動！';
+          }
+          break;
+      }
+    } else if (offer.offerKind === 'PIN' && offer.pinKind) {
+      switch (offer.pinKind) {
+        case 'SPLITTER':
+          if (hasRelic('prism_core') || hasPin('BOMB_PIN')) {
+            return '★プリズム/爆弾化と組み合わせて画面中が連鎖！';
+          }
+          if (nextMod.id === 'LEFT_CHANCE' || nextMod.id === 'RIGHT_RUSH') {
+            return '★次ステージの強化球を3分裂で一気に量産！';
+          }
+          break;
+        case 'BOMB_PIN':
+          if (hasRelic('blast_furnace') || hasRelic('reignite_amp')) {
+            return '★所持レリックの爆破・再点火が即発動！';
+          }
+          if (hasPin('SPLITTER')) {
+            return '★分裂した大量の玉をボム化して盤面制圧！';
+          }
+          break;
+        case 'BUMPER':
+          if (nextMod.id === 'HIGH_VOLTAGE') {
+            return '★次ステージ「高電圧役物台」で効果UP！';
+          }
+          if (hasRelic('pinball_wizard')) {
+            return '★釘師レリックのコンボ電撃を高速発動！';
+          }
+          break;
+        case 'SPINNER':
+          if (nextMod.id === 'HIGH_VOLTAGE') {
+            return '★次ステージ「高電圧役物台」で効果UP！';
+          }
+          if (hasPin('SPLITTER') || hasRelic('prism_core')) {
+            return '★分裂した全弾が通過して倍率が乗算爆発！';
+          }
+          break;
+        case 'MAGNET':
+          if (hasRelic('reach_radar') || hasRelic('overdrive_arc')) {
+            return '★リーチ・覚醒列へ確実に吸い込んで大連鎖！';
+          }
+          if (
+            nextMod.id === 'CENTER_BONUS' ||
+            nextMod.id === 'OVERDRIVE_SURGE'
+          ) {
+            return '★次ステージの狙い列へ安定誘導！';
+          }
+          break;
+      }
+    } else if (offer.offerKind === 'BALL' && offer.ballKind) {
+      switch (offer.ballKind) {
+        case 'BOMB':
+          if (hasRelic('blast_furnace') || hasRelic('reignite_amp')) {
+            return '★所持レリックの爆破・再点火が即発動！';
+          }
+          if (hasPin('BOMB_PIN')) {
+            return '★爆縮イグナイタ通過で3×3全域爆破に進化！';
+          }
+          break;
+        case 'MULTI':
+          if (hasRelic('prism_core') || hasPin('SPLITTER')) {
+            return '★分裂シナジーで盤面の玉数が一気に増殖！';
+          }
+          break;
+        case 'LASER':
+          if (hasRelic('reignite_amp') || hasRelic('overdrive_arc')) {
+            return '★列全再点火＆覚醒加速で倍率が跳ね上がる！';
+          }
+          if (nextMod.id === 'OVERDRIVE_SURGE') {
+            return '★次ステージ「覚醒加速台」で列覚醒を即達成！';
+          }
+          break;
+        case 'GOLD':
+          if (hasRelic('overdrive_arc') || nextMod.id === 'OVERDRIVE_SURGE') {
+            return '★列覚醒2連発動で倍率と資金を同時荒稼ぎ！';
+          }
+          if (nextMod.id === 'CENTER_BONUS') {
+            return '★中央N列+140が金球3倍で+420チップに！';
+          }
+          break;
+      }
+    }
+
+    return undefined;
+  }
+
+  private refreshShopSynergies(): void {
+    for (const offer of this.shopOffers) {
+      if (offer.sold) continue;
+      offer.synergyReason = this.computeOfferSynergyReason(offer);
+    }
   }
 
   private generateShopOffers(): void {
@@ -329,6 +601,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         accentColor: def.color,
         rarityLabel: 'PIN',
         sold: false,
+        tags: [...PIN_TAGS[pinKind]],
       });
     }
 
@@ -346,6 +619,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         accentColor: def.glowColor,
         rarityLabel: 'BALL',
         sold: false,
+        tags: [...BALL_TAGS[ballKind]],
       });
     }
 
@@ -366,6 +640,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         accentColor: def.accentColor,
         rarityLabel: def.rarity,
         sold: false,
+        tags: [...RELIC_TAGS[relicId]],
       });
     }
 
@@ -384,10 +659,12 @@ export class NeonPachinkoEngine implements IGameEngine {
         accentColor: def.glowColor,
         rarityLabel: 'BALL',
         sold: false,
+        tags: [...BALL_TAGS[fallbackBall]],
       });
     }
 
     this.shopOffers = offers;
+    this.refreshShopSynergies();
   }
 
   public getState(): GameStateSnapshot {
@@ -396,6 +673,8 @@ export class NeonPachinkoEngine implements IGameEngine {
       mode: this.mode,
       stage: this.stage,
       maxStandardStage: MAX_STANDARD_STAGE,
+      stageModifier: getStageModifier(this.stage),
+      nextStageModifier: getStageModifier(this.stage + 1),
       stageScore: this.stageScore,
       totalRunScore: this.totalRunScore,
       targetScore: this.targetScore,
@@ -426,6 +705,12 @@ export class NeonPachinkoEngine implements IGameEngine {
       simTime: this.simTime,
       hitstopTimer: this.hitstopTimer,
       stageEndDelayTimer: this.stageEndDelayTimer,
+      chainCount: this.chainCount,
+      chainTotalScore: this.chainTotalScore,
+      chainTimer: this.chainTimer,
+      lastShotChips: this.lastShotChips,
+      lastShotMult: this.lastShotMult,
+      lastShotPoints: this.lastShotPoints,
     };
   }
 
@@ -479,6 +764,11 @@ export class NeonPachinkoEngine implements IGameEngine {
 
     let initialChips = 0;
     let initialMult = 1.0;
+
+    const stageMod = getStageModifier(this.stage);
+    if (stageMod.id === 'RIGHT_RUSH' && power >= 0.68) {
+      initialMult = Number((initialMult * 1.4).toFixed(4));
+    }
 
     if (this.ownedRelics.includes('right_stroke') && power >= 0.68) {
       initialChips += 120;
@@ -602,6 +892,10 @@ export class NeonPachinkoEngine implements IGameEngine {
       this.fireBall();
     }
 
+    if (this.chainTimer > 0) {
+      this.chainTimer = Math.max(0, this.chainTimer - dt);
+    }
+
     // Advance sub-stepped 2D physics
     const captured = stepPhysics(dt, {
       balls: this.balls,
@@ -609,6 +903,7 @@ export class NeonPachinkoEngine implements IGameEngine {
       pockets: this.pockets,
       reachColumns: this.reachColumns,
       ownedRelics: this.ownedRelics,
+      stageModifier: getStageModifier(this.stage),
       simTime: this.simTime,
       nextBallId: () => this.nextBallEntityId++,
       onPinballWizardCellOpen: (ball) => {
@@ -634,6 +929,11 @@ export class NeonPachinkoEngine implements IGameEngine {
         resolveBallInPocket(entry.ball, entry.col, mut);
       }
       this.applyBingoMutator(mut);
+    }
+
+    if (this.chainTimer <= 0 && this.balls.length === 0) {
+      this.chainCount = 0;
+      this.chainTotalScore = 0;
     }
 
     // Stage End Evaluation once all active balls have settled into pockets
@@ -729,6 +1029,7 @@ export class NeonPachinkoEngine implements IGameEngine {
 
     this.medals -= offer.cost;
     offer.sold = true;
+    this.refreshShopSynergies();
 
     this.eventQueue.push({
       type: 'SHOP_BUY',
@@ -806,6 +1107,7 @@ export class NeonPachinkoEngine implements IGameEngine {
           : null;
     }
 
+    this.refreshShopSynergies();
     return true;
   }
 
@@ -841,6 +1143,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         ? this.pendingPinInventory[0]
         : null;
 
+    this.refreshShopSynergies();
     return placedCount;
   }
 
@@ -853,6 +1156,7 @@ export class NeonPachinkoEngine implements IGameEngine {
     delete this.relicPulse[relicId];
     const refund = Math.floor(RELIC_CATALOG[relicId].cost * 0.5);
     this.medals += refund;
+    this.refreshShopSynergies();
     return true;
   }
 
@@ -880,6 +1184,12 @@ export class NeonPachinkoEngine implements IGameEngine {
     this.feverActive = false;
     this.feverTimer = 0;
     this.feverCardResetTimer = 0;
+    this.chainCount = 0;
+    this.chainTotalScore = 0;
+    this.chainTimer = 0;
+    this.lastShotChips = 0;
+    this.lastShotMult = 1;
+    this.lastShotPoints = 0;
     this.clearSummary = null;
     this.eventQueue = [];
   }
@@ -922,6 +1232,12 @@ export class NeonPachinkoEngine implements IGameEngine {
     this.stats.maxStageMult = Math.max(this.stats.maxStageMult, 48.5);
     this.stageScore = Math.max(this.stageScore, 420_000);
     this.totalRunScore = Math.max(this.totalRunScore, 680_000);
+    this.chainCount = 5;
+    this.chainTotalScore = 185_000;
+    this.chainTimer = 2.8;
+    this.lastShotChips = 480;
+    this.lastShotMult = 48.5;
+    this.lastShotPoints = 23_280;
 
     if (!this.ownedRelics.includes('reignite_amp')) this.ownedRelics.push('reignite_amp');
     if (!this.ownedRelics.includes('blast_furnace')) this.ownedRelics.push('blast_furnace');
@@ -992,6 +1308,24 @@ export class NeonPachinkoEngine implements IGameEngine {
         nextWizardBounce: 8,
       });
     }
+
+    // Emit showcase DOUBLE BINGO event so Cut-In Slash Banner & Coin Fountain render live
+    this.eventQueue.push({
+      type: 'BINGO_LINE',
+      x: WORLD.BOARD_LEFT + WORLD.BOARD_WIDTH / 2,
+      y: WORLD.BINGO_TOP + 120,
+      value: 185000,
+      combo: 2,
+      text: 'DOUBLE BINGO!!',
+      color: '#fde047',
+      lineCells: [
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+      ],
+    });
   }
 
   /** E2E verification helper: transitions directly to Stage 8 VICTORY screen */
