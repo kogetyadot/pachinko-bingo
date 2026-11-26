@@ -236,6 +236,24 @@ export class UIController {
       this.syncAudioButtons();
     });
 
+    // Embedded Title Guide & Glossary Tabs
+    const tabHowto = document.getElementById('tab-title-howto');
+    const tabGlossary = document.getElementById('tab-title-glossary');
+    const panelHowto = document.getElementById('title-panel-howto');
+    const panelGlossary = document.getElementById('title-panel-glossary');
+    const setTitleGuideTab = (tab: 'HOWTO' | 'GLOSSARY') => {
+      this.sound.unlock();
+      this.sound.playUiClick(tab === 'HOWTO' ? 680 : 760);
+      tabHowto?.classList.toggle('is-active', tab === 'HOWTO');
+      tabGlossary?.classList.toggle('is-active', tab === 'GLOSSARY');
+      tabHowto?.setAttribute('aria-selected', String(tab === 'HOWTO'));
+      tabGlossary?.setAttribute('aria-selected', String(tab === 'GLOSSARY'));
+      panelHowto?.classList.toggle('is-hidden', tab !== 'HOWTO');
+      panelGlossary?.classList.toggle('is-hidden', tab !== 'GLOSSARY');
+    };
+    tabHowto?.addEventListener('click', () => setTitleGuideTab('HOWTO'));
+    tabGlossary?.addEventListener('click', () => setTitleGuideTab('GLOSSARY'));
+
     // Title buttons
     this.q('btn-start-standard').addEventListener('click', () => {
       this.sound.unlock();
@@ -834,11 +852,11 @@ export class UIController {
 
     const stageLabel =
       state.mode === 'ENDLESS'
-        ? `ENDLESS STG ${state.stage}`
-        : `STAGE ${state.stage} / ${state.maxStandardStage}`;
+        ? `エンドレス ステージ ${state.stage}`
+        : `ステージ ${state.stage} / ${state.maxStandardStage}`;
     this.q('hud-stage-badge').textContent = stageLabel;
     this.q('mm-stage-badge').textContent =
-      state.mode === 'ENDLESS' ? `END ${state.stage}` : `STG ${state.stage}/${state.maxStandardStage}`;
+      state.mode === 'ENDLESS' ? `無限 ${state.stage}面` : `${state.stage}/${state.maxStandardStage}面`;
 
     // Stage Modifier Placard + Stage 1 First-Play Auto-Dismissing Coach Pill
     this.syncStageModifierAndCoach(state, hasReach);
@@ -856,8 +874,8 @@ export class UIController {
     this.q('hud-stage-mult').textContent = multStr;
     this.q('mm-mult-badge').textContent = multStr;
 
-    this.q('hud-card-level').textContent = `LV.${state.cardLevel}`;
-    this.q('mm-card-level').textContent = `LV.${state.cardLevel}`;
+    this.q('hud-card-level').textContent = `Lv.${state.cardLevel}`;
+    this.q('mm-card-level').textContent = `Lv.${state.cardLevel}`;
     this.q('hud-medals').textContent = `¥${formatScore(state.medals)}`;
     this.q('mm-medals-val').textContent = `¥${formatScore(state.medals)}`;
     this.q('hud-run-score').textContent = formatScore(state.totalRunScore);
@@ -866,7 +884,7 @@ export class UIController {
 
     // Ball Queue & Next Ball
     const remaining = state.ballQueue.length;
-    this.q('hud-balls-remaining').textContent = `${remaining} LEFT`;
+    this.q('hud-balls-remaining').textContent = `残り ${remaining} 球`;
     this.q('mcb-balls-left').textContent = `x${remaining}`;
 
     const nextKind: BallKind = state.ballQueue[0] ?? 'STEEL';
@@ -904,7 +922,7 @@ export class UIController {
         <div class="offer-card-top">
           <div class="offer-icon-box">${getBallIconSvg(nextKind, 26)}</div>
           <div class="offer-head-meta">
-            <strong class="offer-name">NEXT: ${remaining > 0 ? nextDef.name : '玉切れ'}</strong>
+            <strong class="offer-name">次の玉：${remaining > 0 ? nextDef.name : '玉切れ'}</strong>
             <span class="offer-desc">${remaining > 0 ? nextDef.description : '結果待機中'}</span>
           </div>
         </div>
@@ -914,7 +932,7 @@ export class UIController {
     `;
 
     // Pin build summary
-    this.q('hud-bingo-count').textContent = `${state.completedLineIds.length} BINGO`;
+    this.q('hud-bingo-count').textContent = `${state.completedLineIds.length} ビンゴ`;
     const pinCounts: Partial<Record<PinKind, number>> = {};
     for (const p of state.pins) {
       if (p.kind !== 'NORMAL') {
@@ -1054,18 +1072,18 @@ export class UIController {
       plaqueEl.style.borderColor = '#fb7185';
       mobStrip.style.borderColor = '#fb7185';
       tagEl.textContent = 'リーチ発生!';
-      nameEl.textContent = 'あと1マスでBINGO';
+      nameEl.textContent = 'あと1マスでビンゴ';
       nameEl.style.color = '#fda4af';
-      descEl.textContent = 'リーチ発生！光っている入賞口を狙ってBINGOを揃えよう！';
-      mobBadge.textContent = 'REACH';
-      mobText.textContent = 'リーチ発生！光っている入賞口を狙ってBINGOを揃えよう！';
+      descEl.textContent = 'リーチ発生！光っている入賞口を狙ってビンゴを揃えよう！';
+      mobBadge.textContent = 'リーチ!';
+      mobText.textContent = 'リーチ発生！光っている入賞口を狙ってビンゴを揃えよう！';
     } else {
       const accent = mod?.accentColor ?? '#f5b942';
       const modName = mod?.name ?? '標準台';
-      const modDesc = mod?.shortDesc ?? '狙いの列に落としてBINGOを揃えよう！';
+      const modDesc = mod?.shortDesc ?? '狙いの列に落としてビンゴを揃えよう！';
       plaqueEl.style.borderColor = accent;
       mobStrip.style.borderColor = accent;
-      tagEl.textContent = '台コンディション';
+      tagEl.textContent = '台特性';
       nameEl.textContent = modName;
       nameEl.style.color = accent;
       descEl.textContent = modDesc;
@@ -1077,7 +1095,7 @@ export class UIController {
   private syncStageClearModal(state: GameStateSnapshot): void {
     const sum = state.clearSummary;
     if (!sum) return;
-    this.q('clear-heading').textContent = `STAGE ${sum.stage} CLEAR`;
+    this.q('clear-heading').textContent = `ステージ ${sum.stage} クリア！`;
     this.q('clear-stage-score').textContent = formatScore(sum.stageScore);
     this.q('clear-base-reward').textContent = `+¥${sum.baseReward}`;
     this.q('clear-unused-balls').textContent = String(sum.unusedBalls);
@@ -1112,7 +1130,7 @@ export class UIController {
     if (sig === this.lastShopSignature) return;
     this.lastShopSignature = sig;
 
-    this.q('shop-stage-title').textContent = `STAGE ${state.stage} SHOP`;
+    this.q('shop-stage-title').textContent = `ステージ ${state.stage} ショップ`;
     this.q('shop-medals').textContent = `¥${formatScore(state.medals)}`;
     this.q('shop-reroll-cost').textContent = `¥${state.rerollCost}`;
     (this.q('btn-reroll-shop') as HTMLButtonElement).disabled = state.medals < state.rerollCost;
@@ -1180,7 +1198,7 @@ export class UIController {
     invEl.innerHTML = '';
     if (pendingCount === 0) {
       invEl.innerHTML =
-        '<div class="offer-desc">未配置の特殊釘はありません。盤面上の装着済み特殊釘をクリックすると回収して別スロットへ付け替えられます！</div>';
+        '<div class="pin-empty-note">未配置の特殊釘はありません（装着済みの釘をタップすると回収・付け替えできます）</div>';
       this.q('btb-hint').textContent = '装着済みの特殊釘をタップで回収＆付け替え可能';
     } else {
       const counts = new Map<PinKind, number>();
@@ -1229,7 +1247,7 @@ export class UIController {
 
     const isRelicBlocked = offer.offerKind === 'RELIC' && !offer.sold && relicsFull;
     const canAfford = !offer.sold && !isRelicBlocked && medals >= offer.cost;
-    const btnLabel = offer.sold ? 'SOLD' : isRelicBlocked ? '満枠 (6/6)' : `¥${offer.cost}`;
+    const btnLabel = offer.sold ? '売切' : isRelicBlocked ? '満枠 (6/6)' : `¥${offer.cost}`;
 
     const tagsHtml = (offer.tags ?? [])
       .slice(0, 3)
@@ -1283,11 +1301,11 @@ export class UIController {
 
     const kicker = this.q('end-kicker');
     kicker.textContent = isVictory
-      ? 'MISSION COMPLETE — ALL 8 STAGES CLEARED'
-      : 'OUT OF BALLS — TARGET NOT REACHED';
+      ? '全8ステージ完全制覇！'
+      : '持ち玉終了 — 目標スコア未達';
     kicker.className = `modal-kicker ${isVictory ? 'gold' : 'crimson'}`;
 
-    this.q('end-title').textContent = isVictory ? 'CABINET CONQUERED!' : 'GAME OVER';
+    this.q('end-title').textContent = isVictory ? '完全制覇！' : '挑戦終了';
     this.q('end-new-record').classList.toggle('is-hidden', !isNewRecord);
 
     this.q('end-run-score').textContent = formatScore(state.totalRunScore);
@@ -1298,7 +1316,7 @@ export class UIController {
 
     const relicsPreview = this.q('end-relics-list');
     if (state.ownedRelics.length === 0) {
-      relicsPreview.innerHTML = '<span class="offer-desc">NONE</span>';
+      relicsPreview.innerHTML = '<span class="offer-desc">なし</span>';
     } else {
       relicsPreview.innerHTML = state.ownedRelics
         .map(

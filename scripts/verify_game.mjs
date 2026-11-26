@@ -101,7 +101,18 @@ async function run() {
 
     await checkNoOverflowAndNoEmoji(page, 'Desktop Title');
     await assertInViewport(page, '#btn-start-standard', desktopVp, 'Desktop Title');
+    await assertInViewport(page, '#tab-title-glossary', desktopVp, 'Desktop Title');
     await page.screenshot({ path: path.join(OUT_DIR, '01_title_desktop.png') });
+
+    // Verify embedded Title Glossary tab on Desktop
+    await page.click('#tab-title-glossary');
+    await page.waitForTimeout(200);
+    await checkNoOverflowAndNoEmoji(page, 'Desktop Title Glossary');
+    await assertInViewport(page, '#title-panel-glossary', desktopVp, 'Desktop Title Glossary');
+    await assertInViewport(page, '#btn-start-standard', desktopVp, 'Desktop Title Glossary');
+    await page.screenshot({ path: path.join(OUT_DIR, '15_title_glossary_desktop.png') });
+    await page.click('#tab-title-howto');
+    await page.waitForTimeout(150);
 
     // Check title attract video status
     summary.titleVideo = await page.evaluate(() => {
@@ -247,7 +258,18 @@ async function run() {
     await mPage.waitForTimeout(800);
     await checkNoOverflowAndNoEmoji(mPage, 'Mobile Title 390x844');
     await assertInViewport(mPage, '#btn-start-standard', mobileVp, 'Mobile Title 390x844');
+    await assertInViewport(mPage, '#tab-title-glossary', mobileVp, 'Mobile Title 390x844');
     await mPage.screenshot({ path: path.join(OUT_DIR, '09_title_mobile.png') });
+
+    // Verify embedded Title Glossary tab on Mobile (390x844)
+    await mPage.tap('#tab-title-glossary');
+    await mPage.waitForTimeout(200);
+    await checkNoOverflowAndNoEmoji(mPage, 'Mobile Title Glossary 390x844');
+    await assertInViewport(mPage, '#title-panel-glossary', mobileVp, 'Mobile Title Glossary 390x844');
+    await assertInViewport(mPage, '#btn-start-standard', mobileVp, 'Mobile Title Glossary 390x844');
+    await mPage.screenshot({ path: path.join(OUT_DIR, '16_title_glossary_mobile.png') });
+    await mPage.tap('#tab-title-howto');
+    await mPage.waitForTimeout(150);
 
     await mPage.tap('#btn-start-standard');
     await mPage.waitForTimeout(500);
@@ -273,11 +295,13 @@ async function run() {
     await mPage.tap('#btn-close-sound-mixer');
     await mPage.waitForTimeout(200);
 
-    // Mobile Shop verification
+    // Mobile Stage Clear & Shop verification
     await mPage.evaluate(() => {
       window.__GAME_DEBUG__?.forceStageClear();
     });
     await mPage.waitForTimeout(1100);
+    await checkNoOverflowAndNoEmoji(mPage, 'Mobile Stage Clear 390x844');
+    await mPage.screenshot({ path: path.join(OUT_DIR, '17_stage_clear_mobile.png') });
     await mPage.tap('#btn-goto-shop');
     await mPage.waitForTimeout(450);
     await checkNoOverflowAndNoEmoji(mPage, 'Mobile Shop 390x844');

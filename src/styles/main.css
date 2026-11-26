@@ -3100,16 +3100,920 @@ input {
   }
 
   .shop-next-mod-strip {
-    padding: 5px 8px;
+    padding: 6px 9px;
     align-items: flex-start;
   }
 
   .snm-text {
-    font-size: 10px;
-    line-height: 1.3;
+    font-size: 11.5px;
+    line-height: 1.35;
     white-space: normal;
     word-break: auto-phrase;
   }
 }
+
+/* ============================================================================
+   EMBEDDED TITLE HOW-TO-PLAY & GLOSSARY + JAPANESE READABILITY SCALE-UP
+   ============================================================================ */
+
+/* --- Embedded Title Screen Guide & Glossary Cabinet Card --- */
+.title-center-stage {
+  gap: 16px;
+}
+
+.title-guide-card {
+  width: min(760px, 100%);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(33, 24, 36, 0.94) 0%, rgba(16, 12, 20, 0.96) 100%);
+  border: 1.5px solid #b48332;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 186, 0.28),
+    0 10px 26px rgba(0, 0, 0, 0.72);
+  overflow: hidden;
+  text-align: left;
+}
+
+.title-guide-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 7px 8px;
+  background: rgba(10, 8, 15, 0.72);
+  border-bottom: 1px solid rgba(180, 131, 50, 0.35);
+}
+
+.title-guide-tab {
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1.5px solid #4c415c;
+  background: linear-gradient(180deg, #2d2638 0%, #1a1622 100%);
+  color: #cbd5e1;
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: filter 0.12s ease, border-color 0.12s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 2px 0 #0a080e;
+}
+
+.title-guide-tab.is-active {
+  background: linear-gradient(180deg, #5c3f18 0%, #33220c 100%);
+  border-color: #fde047;
+  color: #fffbeb;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 204, 0.38),
+    0 2px 0 #241404;
+}
+
+.title-guide-panel {
+  padding: 11px 13px;
+}
+
+.guide-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-step-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(14, 10, 20, 0.76);
+  border: 1px solid rgba(148, 118, 66, 0.35);
+}
+
+.guide-step-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #fffbeb;
+  line-height: 1.25;
+}
+
+.guide-step-num {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #fde047 0%, #d97706 100%);
+  color: #1f1103;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.guide-step-desc {
+  margin: 0;
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: #e2e8f0;
+  word-break: auto-phrase;
+}
+
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+}
+
+.glossary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(14, 10, 20, 0.74);
+  border: 1px solid rgba(112, 92, 128, 0.32);
+}
+
+.glossary-term {
+  flex-shrink: 0;
+  min-width: 66px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: var(--font-jp);
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.glossary-term.term-gold {
+  background: rgba(245, 158, 11, 0.24);
+  border: 1px solid rgba(251, 191, 36, 0.65);
+  color: #fde047;
+}
+
+.glossary-term.term-emerald {
+  background: rgba(16, 185, 129, 0.24);
+  border: 1px solid rgba(52, 211, 153, 0.65);
+  color: #6ee7b7;
+}
+
+.glossary-term.term-crimson {
+  background: rgba(225, 29, 72, 0.24);
+  border: 1px solid rgba(251, 113, 133, 0.65);
+  color: #fda4af;
+}
+
+.glossary-term.term-cyan {
+  background: rgba(56, 189, 248, 0.22);
+  border: 1px solid rgba(125, 211, 252, 0.6);
+  color: #7dd3fc;
+}
+
+.glossary-term.term-violet {
+  background: rgba(168, 85, 247, 0.24);
+  border: 1px solid rgba(192, 132, 252, 0.6);
+  color: #e9d5ff;
+}
+
+.glossary-desc {
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  line-height: 1.38;
+  color: #f1f5f9;
+  word-break: auto-phrase;
+}
+
+/* --- Larger, Crisp Japanese Typography: Title, Modals, Receipts & Shop --- */
+.title-cabinet-tag {
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+}
+
+.title-jp-kicker {
+  font-size: 16px;
+}
+
+.cta-primary-btn,
+.cta-secondary-btn {
+  font-family: var(--font-jp);
+  font-size: 16.5px;
+  padding: 13px 20px;
+}
+
+.cta-ghost-btn {
+  font-family: var(--font-jp);
+  font-size: 14.5px;
+}
+
+.cta-sub-tag {
+  font-size: 12.5px;
+}
+
+.hs-label {
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+}
+
+.hs-value {
+  font-size: 18px;
+}
+
+.arcade-modal {
+  width: min(490px, 100%);
+  padding: 22px 22px;
+  gap: 15px;
+}
+
+.modal-kicker {
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.modal-title {
+  font-family: var(--font-jp);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.receipt-grid {
+  padding: 15px 16px;
+  gap: 11px;
+}
+
+.receipt-row {
+  font-family: var(--font-jp);
+  font-size: 14px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.receipt-row strong {
+  font-size: 17px;
+}
+
+.receipt-row.total {
+  font-size: 15.5px;
+}
+
+.receipt-row.total strong {
+  font-size: 21px;
+}
+
+.nsm-kicker,
+.snm-kicker {
+  font-size: 11.5px;
+}
+
+.nsm-text {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.snm-text {
+  font-size: 12.5px;
+  line-height: 1.38;
+}
+
+.new-record-banner {
+  font-family: var(--font-jp);
+  font-size: 14.5px;
+}
+
+.erp-label {
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.end-relic-chip {
+  font-size: 12.5px;
+  padding: 5px 9px;
+}
+
+/* --- Shop & Board Custom Readability Boost --- */
+.shop-heading {
+  font-family: var(--font-jp);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.shop-wallet-pill {
+  font-size: 16.5px;
+  padding: 6px 12px;
+}
+
+.shop-tab-btn {
+  font-size: 13px;
+  padding: 9px 8px;
+}
+
+.pending-badge {
+  font-size: 11.5px;
+}
+
+.offer-rarity,
+.offer-tag-pill {
+  font-size: 10.5px;
+  padding: 1.5px 6px;
+}
+
+.offer-name {
+  font-size: 14px;
+}
+
+.offer-desc {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.offer-synergy-ribbon {
+  font-size: 11.5px;
+  padding: 3px 7px;
+}
+
+.offer-buy-btn {
+  font-family: var(--font-jp), var(--font-display);
+  font-size: 14px;
+  padding: 7px 12px;
+}
+
+.srs-title {
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.sell-relic-chip {
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.bbp-instruction {
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 11px 12px;
+}
+
+.pin-empty-note {
+  font-family: var(--font-jp);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #fde68a;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(45, 31, 14, 0.55);
+  border: 1px dashed rgba(245, 185, 66, 0.5);
+}
+
+.mini-neon-btn {
+  font-size: 13px;
+  padding: 9px 13px;
+}
+
+.autoplace-note {
+  font-size: 12px;
+}
+
+.shop-reroll-btn {
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  padding: 11px 13px;
+}
+
+.shop-next-btn {
+  font-size: 15.5px;
+}
+
+/* --- Desktop Left & Right HUD Readability Boost --- */
+.stage-badge {
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  letter-spacing: 0.04em;
+}
+
+.cabinet-kicker {
+  font-family: var(--font-jp);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+}
+
+.mod-kicker {
+  font-size: 10.5px;
+}
+
+.mod-name {
+  font-size: 13.5px;
+}
+
+.mod-desc {
+  font-size: 12px;
+}
+
+.target-bar-labels {
+  font-family: var(--font-jp);
+  font-size: 12.5px;
+  color: #cbd5e1;
+}
+
+.rack-count {
+  font-family: var(--font-jp), var(--font-display);
+  font-size: 12.5px;
+}
+
+.relic-tooltip {
+  font-size: 12px;
+  line-height: 1.42;
+  color: #cbd5e1;
+}
+
+.ghost-back-btn {
+  font-family: var(--font-jp);
+  font-size: 13px;
+}
+
+.next-lbl {
+  font-family: var(--font-jp);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.next-ball-meta strong {
+  font-size: 14.5px;
+}
+
+.next-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.pin-chip {
+  font-size: 12px;
+}
+
+.route-pill {
+  font-size: 12.5px;
+}
+
+.aim-preset-btn {
+  font-size: 12.5px;
+}
+
+.slider-label {
+  font-family: var(--font-jp);
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.slider-label strong {
+  font-size: 14.5px;
+}
+
+.lock-stroke-btn {
+  font-family: var(--font-jp);
+  font-size: 13px;
+}
+
+.launch-btn-title {
+  font-family: var(--font-jp);
+  font-size: 18px;
+}
+
+.launch-btn-sub {
+  font-family: var(--font-jp);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.smc-title {
+  font-family: var(--font-jp);
+  font-size: 14px;
+}
+
+.smc-mute-btn {
+  font-size: 12.5px;
+}
+
+.smc-pct {
+  font-size: 13.5px;
+}
+
+.mrp-close {
+  font-size: 12.5px;
+}
+
+/* --- Mobile Title & Gameplay Readability Boost (< 960px) --- */
+@media (max-width: 959px) {
+  .title-screen {
+    padding: 10px 14px 14px;
+  }
+
+  .title-center-stage {
+    gap: 11px;
+  }
+
+  .title-brand-lockup {
+    gap: 8px;
+  }
+
+  .title-emblem {
+    width: 48px;
+    height: 48px;
+  }
+
+  .title-jp-kicker {
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .title-main-heading {
+    font-size: clamp(22px, 6.2vw, 32px);
+  }
+
+  .title-guide-tab {
+    font-size: 13px;
+    padding: 7px 6px;
+  }
+
+  .title-guide-panel {
+    padding: 9px 10px;
+    max-height: 29dvh;
+    overflow-y: auto;
+  }
+
+  .guide-steps-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .guide-step-item {
+    padding: 7px 9px;
+    gap: 3px;
+  }
+
+  .guide-step-head {
+    font-size: 13px;
+  }
+
+  .guide-step-desc {
+    font-size: 12px;
+  }
+
+  .glossary-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .glossary-item {
+    padding: 5px 7px;
+  }
+
+  .glossary-term {
+    font-size: 11.5px;
+    min-width: 62px;
+  }
+
+  .glossary-desc {
+    font-size: 12px;
+  }
+
+  .title-cta-stack {
+    gap: 8px;
+  }
+
+  .cta-primary-btn,
+  .cta-secondary-btn {
+    padding: 11px 16px;
+    font-size: 15.5px;
+  }
+
+  .title-highscore-pill {
+    padding: 6px 14px;
+  }
+
+  .mobile-marquee {
+    height: 62px;
+    gap: 4px;
+    padding: 5px 8px;
+  }
+
+  .mm-stage-badge {
+    font-family: var(--font-jp);
+    font-size: 11.5px;
+    padding: 2px 7px;
+  }
+
+  .mm-medal-badge {
+    font-size: 12.5px;
+  }
+
+  .mm-relics-btn,
+  .mm-sound-btn,
+  .mm-home-btn {
+    font-size: 11.5px;
+    padding: 3px 7px;
+  }
+
+  .mm-score-readout {
+    font-size: 13.5px;
+  }
+
+  .mm-slash,
+  .mm-target-val {
+    font-size: 11.5px;
+  }
+
+  .mm-mult-badge {
+    font-size: 12px;
+    padding: 1px 6px;
+  }
+
+  .mm-lv-badge {
+    font-size: 11px;
+    padding: 1.5px 5px;
+  }
+
+  .mobile-stage-tip {
+    height: 27px;
+    padding: 0 8px;
+  }
+
+  .mst-badge {
+    font-size: 10.5px;
+    padding: 1.5px 6px;
+  }
+
+  .mst-text {
+    font-size: 12px;
+  }
+
+  .mrp-header {
+    font-family: var(--font-jp);
+    font-size: 13.5px;
+    font-weight: 800;
+  }
+
+  .stroke-controller-box {
+    height: 88px;
+    padding: 6px 7px;
+  }
+
+  .mcb-ball-pill,
+  .lock-stroke-btn,
+  .launch-main-btn {
+    height: 74px;
+  }
+
+  .mcb-ball-pill {
+    width: 44px;
+  }
+
+  .mcb-balls-left {
+    font-size: 12px;
+  }
+
+  .aim-preset-btn {
+    min-height: 34px;
+    font-size: 12px;
+  }
+
+  .slider-label {
+    font-size: 12px;
+  }
+
+  .mcb-route-lbl {
+    font-size: 12px;
+  }
+
+  .slider-label strong {
+    font-size: 12.5px;
+  }
+
+  .lock-stroke-btn {
+    width: 52px;
+    font-size: 10.5px;
+  }
+
+  .launch-main-btn {
+    width: 64px;
+  }
+
+  .launch-btn-short {
+    font-size: 15px;
+  }
+
+  .btb-badge,
+  .btb-hint {
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 719px) {
+  .title-cabinet-tag {
+    font-size: 10.5px;
+    max-width: 176px;
+  }
+
+  .title-top-bar .icon-toggle-btn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+}
+
+@media (max-width: 385px) {
+  .mobile-marquee {
+    padding: 4px 6px;
+  }
+
+  .mm-stage-badge {
+    font-size: 10.5px;
+    padding: 2px 5px;
+  }
+
+  .mm-medal-badge {
+    font-size: 11.5px;
+  }
+
+  .mm-relics-btn,
+  .mm-sound-btn,
+  .mm-home-btn {
+    font-size: 10.5px;
+    padding: 3px 5px;
+  }
+
+  .mm-score-readout {
+    font-size: 12.5px;
+  }
+
+  .mcb-ball-pill {
+    width: 40px;
+  }
+
+  .aim-preset-btn {
+    font-size: 11px;
+  }
+
+  .mcb-route-lbl,
+  .slider-label strong {
+    font-size: 11px;
+  }
+
+  .lock-stroke-btn {
+    width: 48px;
+    font-size: 10px;
+  }
+
+  .launch-main-btn {
+    width: 58px;
+  }
+}
+
+/* ============================================================================
+   CRITIC ROUND FIXES: MOBILE GLOSSARY FULL VIEW, DESKTOP SHOP FIT, HEADER BADGE
+   ============================================================================ */
+
+/* 1. Desktop Shop: tighten vertical overhead so Row 1 & Row 2 cards show full buy buttons without slicing */
+@media (min-width: 960px) {
+  .shop-panel {
+    padding: 10px 12px;
+    gap: 7px;
+  }
+
+  .shop-heading {
+    font-size: 18.5px;
+  }
+
+  .shop-next-mod-strip {
+    padding: 4px 8px;
+  }
+
+  .snm-text {
+    font-size: 11.5px;
+  }
+
+  .shop-tab-btn {
+    padding: 7px 8px;
+    font-size: 12.5px;
+  }
+
+  .shop-offers-grid {
+    gap: 6px;
+  }
+
+  .shop-offer-card {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .offer-card-main {
+    gap: 3px;
+  }
+
+  .offer-icon-box {
+    width: 32px;
+    height: 32px;
+  }
+
+  .offer-name {
+    font-size: 13px;
+  }
+
+  .offer-desc {
+    font-size: 11.5px;
+    line-height: 1.32;
+  }
+
+  .offer-synergy-ribbon {
+    font-size: 10.5px;
+    padding: 2px 6px;
+  }
+
+  .offer-buy-btn {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+
+  .shop-relics-strip {
+    padding: 6px 9px;
+    gap: 4px;
+  }
+
+  .shop-reroll-btn,
+  .shop-next-btn {
+    padding: 9px 12px;
+  }
+}
+
+/* 2. Mobile Title Glossary: give panel ample room so all 6 terms fit without clipping on 390x844 */
+@media (max-width: 959px) {
+  .title-center-stage {
+    gap: 9px;
+  }
+
+  .title-guide-panel {
+    padding: 8px 10px;
+    max-height: min(350px, 44dvh);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 185, 66, 0.65) rgba(15, 12, 22, 0.4);
+  }
+
+  .glossary-grid {
+    gap: 5px;
+  }
+
+  .glossary-item {
+    padding: 4.5px 7px;
+    gap: 7px;
+  }
+
+  .glossary-desc {
+    font-size: 11.8px;
+    line-height: 1.34;
+  }
+}
+
+/* 3. Mobile Title Header Badge: cleanly hide subtitle suffix instead of mid-word ellipsis */
+@media (max-width: 719px) {
+  .title-cabinet-tag {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  .title-cabinet-tag .tag-sub {
+    display: none;
+  }
+}
+
+/* 4. Narrow Screen Stage Clear & Shop Next-Modifier: stack badge over text to prevent mid-word breaks */
+@media (max-width: 520px) {
+  .next-stage-mod-banner,
+  .shop-next-mod-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 7px 10px;
+  }
+}
+
+
 
 

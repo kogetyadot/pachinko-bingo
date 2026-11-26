@@ -59,7 +59,7 @@ export const PIN_CATALOG: Record<PinKind, PinDef> = {
     kind: 'MAGNET',
     name: 'リーチ誘導コア',
     shortLabel: '誘導',
-    description: '現在リーチ中またはOVERDRIVE中の列方向へ玉の軌道を吸い寄せる（+40チップ）。',
+    description: '現在リーチ中または列覚醒中の方向へ玉の軌道を吸い寄せる（+40チップ）。',
     cost: 35,
     color: '#38bdf8',
     radius: 11.0,
@@ -107,7 +107,7 @@ export const BALL_CATALOG: Record<BallKind, BallDef> = {
     kind: 'GOLD',
     name: 'ジャックポット金球',
     shortLabel: 'GOLD',
-    description: '基礎チップ3倍・ポケット突入で資金 +¥10。OVERDRIVE列なら効果を2連発動！',
+    description: '基礎チップ3倍・入賞で資金 +¥10。列覚醒の入賞口なら効果を2連発動！',
     cost: 48,
     color: '#ffd000',
     glowColor: '#ffb800',
@@ -142,7 +142,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   overdrive_arc: {
     id: 'overdrive_arc',
     name: '過電流アーク',
-    description: '列覚醒（OVERDRIVE）突入時の倍率上昇を ×1.35（+2.0x）に強化＆電撃飛び火が2マスに増加！',
+    description: '列覚醒（縦5マス全開）の入賞口で倍率上昇を ×1.35（+2.0x）に強化＆電撃飛び火が2マスに増加！',
     cost: 62,
     rarity: 'LEGENDARY',
     accentColor: '#00f0ff',
@@ -158,7 +158,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   diagonal_king: {
     id: 'diagonal_king',
     name: 'クロスライン覇者',
-    description: '斜めラインのBINGO成立時、ラインボーナス ×2.5倍 ＆ ステージ倍率 +2.5x 追加上昇。',
+    description: '斜めラインのビンゴ成立時、ラインボーナス ×2.5倍 ＆ ステージ倍率 +2.5x 追加上昇。',
     cost: 45,
     rarity: 'COMMON',
     accentColor: '#ff2a5f',
@@ -190,7 +190,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   fever_engine: {
     id: 'fever_engine',
     name: '永久機関フィーバー',
-    description: 'FULL BINGO（全25マス開放）達成時、FEVER追加球 +3球（1ステージ2回まで）＆ 倍率 ×1.35！',
+    description: '全25マス開放（FEVER）達成時、追加球 +3球（1ステージ2回まで）＆ 倍率 ×1.35！',
     cost: 58,
     rarity: 'RARE',
     accentColor: '#ffd000',
@@ -198,7 +198,7 @@ export const RELIC_CATALOG: Record<RelicId, RelicDef> = {
   medal_magnet: {
     id: 'medal_magnet',
     name: '黄金メダル回収機',
-    description: 'BINGOが1列成立するたび、ショップ資金 +¥10 を即時獲得（1ステージ最大 +¥60）。',
+    description: 'ビンゴが1列成立するたび、ショップ資金 +¥10 を即時獲得（1ステージ最大 +¥60）。',
     cost: 40,
     rarity: 'COMMON',
     accentColor: '#ffb800',
@@ -228,7 +228,7 @@ export const STAGE_MODIFIERS = [
   {
     id: 'STANDARD' as const,
     name: '標準台',
-    shortDesc: '狙いの列に落としてBINGOを揃えよう！',
+    shortDesc: '狙いの列に落としてビンゴを揃えよう！',
     accentColor: '#f5b942',
   },
   {
@@ -248,7 +248,7 @@ export const STAGE_MODIFIERS = [
   {
     id: 'DIAGONAL_GOLD' as const,
     name: '斜めビンゴ高配当台',
-    shortDesc: '斜めラインBINGOの獲得スコア ×2.0！',
+    shortDesc: '斜めラインのビンゴ獲得スコア ×2.0！',
     accentColor: '#fb7185',
   },
   {
@@ -267,13 +267,13 @@ export const STAGE_MODIFIERS = [
   {
     id: 'OVERDRIVE_SURGE' as const,
     name: '覚醒加速台',
-    shortDesc: '列OVERDRIVE突入時の倍率上昇が大幅UP！',
+    shortDesc: '列覚醒の入賞口で倍率上昇が大幅UP！',
     accentColor: '#10b981',
   },
   {
     id: 'GOLDEN_BOSS' as const,
     name: '大決戦・黄金筐体',
-    shortDesc: '全BINGO配当 ×1.5！最強ビルドで撃破せよ！',
+    shortDesc: '全ビンゴ配当 ×1.5！最強ビルドで撃破せよ！',
     accentColor: '#fde047',
   },
 ];

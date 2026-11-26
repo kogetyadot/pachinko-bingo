@@ -599,7 +599,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         description: def.description,
         cost: def.cost,
         accentColor: def.color,
-        rarityLabel: 'PIN',
+        rarityLabel: '特殊釘',
         sold: false,
         tags: [...PIN_TAGS[pinKind]],
       });
@@ -617,7 +617,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         description: def.description,
         cost: def.cost,
         accentColor: def.glowColor,
-        rarityLabel: 'BALL',
+        rarityLabel: '特殊球',
         sold: false,
         tags: [...BALL_TAGS[ballKind]],
       });
@@ -630,6 +630,8 @@ export class NeonPachinkoEngine implements IGameEngine {
     const chosenRelics = pickWeightedRelics(availableRelics, 2);
     for (const relicId of chosenRelics) {
       const def = RELIC_CATALOG[relicId];
+      const relicBadge =
+        def.rarity === 'LEGENDARY' ? '伝説レリック' : def.rarity === 'RARE' ? 'レアレリック' : 'レリック';
       offers.push({
         id: `offer_${this.offerCounter++}`,
         offerKind: 'RELIC',
@@ -638,7 +640,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         description: def.description,
         cost: def.cost,
         accentColor: def.accentColor,
-        rarityLabel: def.rarity,
+        rarityLabel: relicBadge,
         sold: false,
         tags: [...RELIC_TAGS[relicId]],
       });
@@ -657,7 +659,7 @@ export class NeonPachinkoEngine implements IGameEngine {
         description: def.description,
         cost: def.cost,
         accentColor: def.glowColor,
-        rarityLabel: 'BALL',
+        rarityLabel: '特殊球',
         sold: false,
         tags: [...BALL_TAGS[fallbackBall]],
       });

@@ -41,7 +41,7 @@
         <div class="title-vignette"></div>
 
         <div class="title-top-bar">
-          <div class="title-cabinet-tag">CR PACHINKO BINGO // OVERDRIVE</div>
+          <div class="title-cabinet-tag">CR パチンコ・ビンゴ<span class="tag-sub"> // 電撃インフレ</span></div>
           <div class="audio-toggles-cluster">
             <button
               id="btn-sound-mixer-title"
@@ -85,39 +85,105 @@
             </div>
           </div>
 
-          <div class="title-loop-strip" aria-label="ゲーム概要">
-            <div class="loop-step">
-              <span class="loop-icon" data-icon="aimTarget"></span>
-              <span class="loop-label">1. ストローク調整で狙い撃ち</span>
+          <section class="title-guide-card" aria-label="遊び方と用語ガイド">
+            <div class="title-guide-tabs" role="tablist">
+              <button
+                id="tab-title-howto"
+                class="title-guide-tab is-active"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="title-panel-howto"
+              >
+                遊び方（3ステップ）
+              </button>
+              <button
+                id="tab-title-glossary"
+                class="title-guide-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="title-panel-glossary"
+              >
+                用語ガイド
+              </button>
             </div>
-            <span class="loop-arrow" data-icon="chevronRight"></span>
-            <div class="loop-step">
-              <span class="loop-icon" data-icon="bingoGrid"></span>
-              <span class="loop-label">2. 入賞口でBINGOパネル開放</span>
+
+            <div id="title-panel-howto" class="title-guide-panel" role="tabpanel">
+              <div class="guide-steps-grid">
+                <div class="guide-step-item">
+                  <div class="guide-step-head">
+                    <span class="guide-step-num">1</span>
+                    <span class="loop-icon" data-icon="aimTarget"></span>
+                    <strong>強さを決めて発射</strong>
+                  </div>
+                  <p class="guide-step-desc">ハンドルで左・中央・右を狙い、下のB〜O入賞口へ玉を落とそう。</p>
+                </div>
+                <div class="guide-step-item">
+                  <div class="guide-step-head">
+                    <span class="guide-step-num">2</span>
+                    <span class="loop-icon" data-icon="bingoGrid"></span>
+                    <strong>マス開放＆ビンゴ成立</strong>
+                  </div>
+                  <p class="guide-step-desc">入った列のマスが開き、揃うと倍率UP！目標スコア突破でクリア。</p>
+                </div>
+                <div class="guide-step-item">
+                  <div class="guide-step-head">
+                    <span class="guide-step-num">3</span>
+                    <span class="loop-icon" data-icon="overdriveCore"></span>
+                    <strong>釘改造＆強化で超インフレ</strong>
+                  </div>
+                  <p class="guide-step-desc">ショップで特殊釘・球・レリックを組合せ、1球で連鎖爆発を狙え！</p>
+                </div>
+              </div>
             </div>
-            <span class="loop-arrow" data-icon="chevronRight"></span>
-            <div class="loop-step">
-              <span class="loop-icon" data-icon="overdriveCore"></span>
-              <span class="loop-label">3. 釘改造×OVERDRIVEで大爆発</span>
+
+            <div id="title-panel-glossary" class="title-guide-panel is-hidden" role="tabpanel">
+              <div class="glossary-grid">
+                <div class="glossary-item">
+                  <span class="glossary-term term-gold">再点火</span>
+                  <span class="glossary-desc">開いたマスに再度入ると倍率UP＆追加スコア！</span>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-term term-emerald">列覚醒</span>
+                  <span class="glossary-desc">縦5マス全開の入賞口が強化され、倍増＆電撃飛び火！</span>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-term term-crimson">リーチ</span>
+                  <span class="glossary-desc">あと1マスでビンゴ。光る入賞口を狙えば大チャンス！</span>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-term term-gold">FEVER</span>
+                  <span class="glossary-desc">25マス全開放で大当たり！追加球＆倍率引き継ぎ新カード。</span>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-term term-cyan">台特性</span>
+                  <span class="glossary-desc">ステージごとの有利ルール。相性の良い強化を選ぼう。</span>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-term term-violet">レリック</span>
+                  <span class="glossary-desc">最大6枠の常時強化パーツ。ショップで売却・入替も可能。</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
 
           <div class="title-cta-stack">
             <button id="btn-start-standard" class="cta-primary-btn" type="button">
               <span class="cta-icon" data-icon="play"></span>
-              <span class="cta-text">GAME START</span>
+              <span class="cta-text">ゲーム開始</span>
               <span class="cta-sub-tag">全8ステージ</span>
             </button>
             <button id="btn-start-endless" class="cta-secondary-btn" type="button">
               <span class="cta-icon" data-icon="bolt"></span>
-              <span class="cta-text">ENDLESS MODE</span>
+              <span class="cta-text">エンドレス</span>
               <span class="cta-sub-tag">無限インフレ</span>
             </button>
           </div>
 
           <div class="title-highscore-pill">
             <span class="hs-icon" data-icon="crown"></span>
-            <span class="hs-label">HIGH SCORE</span>
+            <span class="hs-label">ハイスコア</span>
             <span id="title-high-score" class="hs-value">0</span>
           </div>
         </main>
@@ -129,7 +195,7 @@
         <header id="mobile-marquee" class="mobile-marquee">
           <div class="mm-top-row">
             <div class="mm-status-left">
-              <span id="mm-stage-badge" class="mm-stage-badge">STG 1/8</span>
+              <span id="mm-stage-badge" class="mm-stage-badge">1/8面</span>
               <div class="mm-medal-badge">
                 <span class="medal-icon-inline" data-icon="medal"></span>
                 <span id="mm-medals-val">¥0</span>
@@ -142,7 +208,7 @@
                 type="button"
                 aria-label="レリック確認"
               >
-                <span>REL</span>
+                <span>装備</span>
                 <strong id="mm-relics-count">0/6</strong>
               </button>
               <button
@@ -160,7 +226,7 @@
                 type="button"
                 aria-label="タイトルへ戻る"
               >
-                TITLE
+                タイトル
               </button>
             </div>
           </div>
@@ -176,7 +242,7 @@
             </div>
             <div class="mm-row2-pills">
               <span id="mm-mult-badge" class="mm-mult-badge">x1</span>
-              <span id="mm-card-level" class="mm-lv-badge">LV.1</span>
+              <span id="mm-card-level" class="mm-lv-badge">Lv.1</span>
               <span id="mm-fever-pill" class="fever-pill is-hidden">FEVER</span>
             </div>
           </div>
@@ -185,8 +251,8 @@
         <!-- Mobile Relic Drawer (toggleable) -->
         <div id="mobile-relic-popover" class="mobile-relic-popover is-hidden">
           <div class="mrp-header">
-            <span>ACTIVE RELICS</span>
-            <button id="btn-close-mobile-relics" class="mrp-close" type="button">CLOSE</button>
+            <span>所持レリック一覧</span>
+            <button id="btn-close-mobile-relics" class="mrp-close" type="button">閉じる</button>
           </div>
           <div id="mobile-relic-list" class="mrp-list"></div>
         </div>
@@ -194,8 +260,8 @@
         <!-- Mobile Next Ball & Deck Inspector Popover -->
         <div id="mobile-ball-popover" class="mobile-relic-popover is-hidden">
           <div class="mrp-header">
-            <span>NEXT BALL &amp; MAGAZINE</span>
-            <button id="btn-close-mobile-ball" class="mrp-close" type="button">CLOSE</button>
+            <span>次の玉＆残り玉</span>
+            <button id="btn-close-mobile-ball" class="mrp-close" type="button">閉じる</button>
           </div>
           <div id="mobile-ball-detail" class="mrp-list"></div>
         </div>
@@ -203,7 +269,7 @@
         <!-- Desktop Left Cabinet Panel (>= 960px) -->
         <aside class="cabinet-left-panel" aria-label="スコアとレリック状況">
           <div class="panel-top-row">
-            <div id="hud-stage-badge" class="stage-badge">STAGE 1 / 8</div>
+            <div id="hud-stage-badge" class="stage-badge">ステージ 1 / 8</div>
             <div class="audio-toggles-cluster">
               <button
                 id="btn-sound-mixer-desktop"
@@ -238,21 +304,21 @@
 
           <div id="hud-stage-modifier" class="stage-modifier-plaque">
             <div class="mod-top-row">
-              <span id="hud-modifier-tag" class="mod-kicker">台コンディション</span>
+              <span id="hud-modifier-tag" class="mod-kicker">台特性</span>
               <strong id="hud-modifier-name" class="mod-name">標準台</strong>
             </div>
-            <div id="hud-modifier-desc" class="mod-desc">狙いの列に落としてBINGOを揃えよう！</div>
+            <div id="hud-modifier-desc" class="mod-desc">狙いの列に落としてビンゴを揃えよう！</div>
           </div>
 
           <div class="score-cabinet-box">
             <div class="score-box-header">
-              <span class="cabinet-kicker">SCORE</span>
-              <span id="hud-fever-pill" class="fever-pill is-hidden">FEVER ACTIVE</span>
+              <span class="cabinet-kicker">現在スコア</span>
+              <span id="hud-fever-pill" class="fever-pill is-hidden">FEVER発動中</span>
             </div>
             <div id="hud-stage-score" class="giant-score-readout">0</div>
             <div class="target-bar-wrap">
               <div class="target-bar-labels">
-                <span>TARGET</span>
+                <span>目標スコア</span>
                 <strong id="hud-target-score">1,200</strong>
               </div>
               <div class="score-progress-track">
@@ -262,23 +328,23 @@
 
             <div class="mult-card-row">
               <div class="mult-display-box">
-                <span class="cabinet-kicker">STAGE MULT</span>
+                <span class="cabinet-kicker">現在倍率</span>
                 <div id="hud-stage-mult" class="giant-mult-readout">x1</div>
               </div>
               <div class="cardlv-display-box">
-                <span class="cabinet-kicker">CARD LEVEL</span>
-                <div id="hud-card-level" class="card-lv-readout">LV.1</div>
+                <span class="cabinet-kicker">カードLv</span>
+                <div id="hud-card-level" class="card-lv-readout">Lv.1</div>
               </div>
             </div>
 
             <div class="medal-run-row">
               <div class="medal-readout">
                 <span class="medal-icon-inline" data-icon="medal"></span>
-                <span class="cabinet-kicker">CREDITS</span>
+                <span class="cabinet-kicker">所持資金</span>
                 <strong id="hud-medals" class="medal-amount">¥0</strong>
               </div>
               <div class="run-score-readout">
-                <span class="cabinet-kicker">RUN TOTAL</span>
+                <span class="cabinet-kicker">累計スコア</span>
                 <strong id="hud-run-score">0</strong>
               </div>
             </div>
@@ -286,7 +352,7 @@
 
           <div class="relic-rack-box">
             <div class="rack-header">
-              <span class="cabinet-kicker">ACTIVE RELICS</span>
+              <span class="cabinet-kicker">所持レリック</span>
               <span id="hud-relic-count" class="rack-count">0 / 6</span>
             </div>
             <div id="hud-relic-slots" class="relic-slots-grid"></div>
@@ -296,7 +362,7 @@
           </div>
 
           <button id="btn-quit-to-title" class="ghost-back-btn" type="button">
-            TITLEへ戻る
+            タイトルへ戻る
           </button>
         </aside>
 
@@ -339,13 +405,13 @@
         <aside class="cabinet-right-panel" aria-label="発射ハンドルと持ち玉マガジン">
           <div class="magazine-box">
             <div class="rack-header">
-              <span class="cabinet-kicker">BALL MAGAZINE</span>
-              <span id="hud-balls-remaining" class="rack-count">12 LEFT</span>
+              <span class="cabinet-kicker">持ち玉マガジン</span>
+              <span id="hud-balls-remaining" class="rack-count">残り 12 球</span>
             </div>
             <div class="next-ball-showcase">
               <div id="hud-next-ball-icon" class="next-ball-icon"></div>
               <div class="next-ball-meta">
-                <span class="next-lbl">NEXT SHOT</span>
+                <span class="next-lbl">次に撃つ玉</span>
                 <strong id="hud-next-ball-name">クローム球</strong>
                 <span id="hud-next-ball-desc" class="next-desc">標準の超硬クローム球</span>
               </div>
@@ -355,15 +421,15 @@
 
           <div class="pin-legend-box">
             <div class="rack-header">
-              <span class="cabinet-kicker">BOARD BUILD</span>
-              <span id="hud-bingo-count" class="rack-count">0 BINGO</span>
+              <span class="cabinet-kicker">盤面の特殊釘</span>
+              <span id="hud-bingo-count" class="rack-count">0 ビンゴ</span>
             </div>
             <div id="hud-pin-summary" class="pin-summary-chips"></div>
           </div>
 
           <div class="stroke-controller-box">
             <div class="rack-header stroke-desktop-header">
-              <span class="cabinet-kicker">STROKE HANDLE</span>
+              <span class="cabinet-kicker">打ち出しハンドル</span>
               <span id="hud-stroke-route" class="route-pill">ぶっ込み 42%</span>
             </div>
 
@@ -394,7 +460,7 @@
                 </div>
                 <div class="power-slider-col">
                   <label class="slider-label" for="slider-power">
-                    <span class="lbl-full">HANDLE POWER</span>
+                    <span class="lbl-full">打ち出し強さ</span>
                     <span id="mcb-route-lbl" class="mcb-route-lbl">ぶっ込み 42%</span>
                     <strong id="hud-power-pct">42%</strong>
                   </label>
@@ -418,14 +484,14 @@
                 aria-pressed="false"
               >
                 <span class="lock-icon-slot" data-icon="lock"></span>
-                <span class="lbl-full">固定連射 (LOCK)</span>
-                <span class="lbl-short">連射固定</span>
+                <span class="lbl-full">固定連射</span>
+                <span class="lbl-short">固定連射</span>
               </button>
               <button id="btn-launch" class="launch-main-btn" type="button">
                 <span class="launch-btn-icon" data-icon="bolt"></span>
-                <span class="launch-btn-title">LAUNCH 発射</span>
+                <span class="launch-btn-title">発射</span>
                 <span class="launch-btn-short">発射</span>
-                <span class="launch-btn-sub">CLICK OR HOLD [SPACE]</span>
+                <span class="launch-btn-sub">クリック / 長押し [SPACE]</span>
               </button>
             </div>
           </div>
@@ -439,36 +505,36 @@
         aria-label="ステージクリア"
       >
         <div class="arcade-modal clear-modal">
-          <div class="modal-kicker emerald">STAGE CLEARED — TARGET CRUSHED</div>
-          <h2 id="clear-heading" class="modal-title">STAGE 1 CLEAR</h2>
+          <div class="modal-kicker emerald">目標スコア達成！</div>
+          <h2 id="clear-heading" class="modal-title">ステージ 1 クリア！</h2>
 
           <div class="receipt-grid">
             <div class="receipt-row">
-              <span>STAGE SCORE</span>
+              <span>ステージスコア</span>
               <strong id="clear-stage-score" class="cyan">0</strong>
             </div>
             <div class="receipt-row">
-              <span>BASE CLEAR REWARD</span>
+              <span>基本クリア報酬</span>
               <strong id="clear-base-reward">+¥0</strong>
             </div>
             <div class="receipt-row">
-              <span>UNUSED BALLS BONUS (<span id="clear-unused-balls">0</span>)</span>
+              <span>残り玉ボーナス (<span id="clear-unused-balls">0</span>球)</span>
               <strong id="clear-ball-bonus">+¥0</strong>
             </div>
             <div class="receipt-row">
-              <span>BINGO LINE BONUS</span>
+              <span>ビンゴ成立ボーナス</span>
               <strong id="clear-bingo-bonus">+¥0</strong>
             </div>
             <div class="receipt-divider"></div>
             <div class="receipt-row total">
-              <span>TOTAL CREDITS EARNED</span>
+              <span>獲得資金 合計</span>
               <strong id="clear-total-medals" class="gold">+¥0</strong>
             </div>
           </div>
 
           <div id="clear-next-modifier" class="next-stage-mod-banner">
             <span class="nsm-kicker">次ステージ台特性</span>
-            <span id="clear-next-mod-text" class="nsm-text">標準台 — 狙いの列に落としてBINGOを揃えよう！</span>
+            <span id="clear-next-mod-text" class="nsm-text">標準台 — 狙いの列に落としてビンゴを揃えよう！</span>
           </div>
 
           <button id="btn-goto-shop" class="cta-primary-btn full" type="button">
@@ -487,8 +553,8 @@
         <div class="shop-panel">
           <header class="shop-header">
             <div class="shop-title-group">
-              <span class="modal-kicker gold">TUNING PARLOR — ステージ改造ショップ</span>
-              <h2 id="shop-stage-title" class="shop-heading">STAGE 1 SHOP</h2>
+              <span class="modal-kicker gold">ステージ改造ショップ</span>
+              <h2 id="shop-stage-title" class="shop-heading">ステージ 1 ショップ</h2>
             </div>
             <div class="shop-wallet-pill">
               <span class="medal-icon-inline" data-icon="medal"></span>
@@ -498,7 +564,7 @@
 
           <div id="shop-next-modifier" class="shop-next-mod-strip">
             <span class="snm-kicker">次ステージ台特性</span>
-            <span id="shop-next-mod-text" class="snm-text">標準台 — 狙いの列に落としてBINGOを揃えよう！</span>
+            <span id="shop-next-mod-text" class="snm-text">標準台 — 狙いの列に落としてビンゴを揃えよう！</span>
           </div>
 
           <nav class="shop-tabs" role="tablist">
@@ -532,7 +598,7 @@
           <div id="shop-view-board" class="shop-view is-hidden">
             <div class="board-brush-panel">
               <p class="bbp-instruction">
-                装着したい特殊釘を選び、盤面の<strong>光るスロット</strong>をクリック！装着済みの特殊釘をタップすると回収して別の位置へ付け替えられます。
+                装着したい特殊釘を選び、盤面の<strong>光るスロット</strong>をタップ！装着済みの釘をタップすると回収・付け替えできます。
               </p>
               <div id="shop-pin-inventory" class="pin-inventory-list"></div>
               <div class="bbp-actions-row">
@@ -565,7 +631,7 @@
             </button>
             <button id="btn-next-stage" class="cta-primary-btn shop-next-btn" type="button">
               <span class="cta-icon" data-icon="play"></span>
-              <span class="cta-text">NEXT STAGE 開始</span>
+              <span class="cta-text">次のステージへ進む</span>
             </button>
           </footer>
         </div>
@@ -578,46 +644,46 @@
         aria-label="リザルト画面"
       >
         <div class="arcade-modal end-modal">
-          <div id="end-kicker" class="modal-kicker gold">MISSION COMPLETE</div>
-          <h2 id="end-title" class="modal-title">CABINET CONQUERED</h2>
+          <div id="end-kicker" class="modal-kicker gold">全8ステージ完全制覇！</div>
+          <h2 id="end-title" class="modal-title">完全制覇！</h2>
 
           <div id="end-new-record" class="new-record-banner is-hidden">
             <span data-icon="crown"></span>
-            <span>NEW HIGH SCORE RECORD</span>
+            <span>ハイスコア更新！</span>
           </div>
 
           <div class="receipt-grid">
             <div class="receipt-row">
-              <span>FINAL RUN SCORE</span>
+              <span>最終トータルスコア</span>
               <strong id="end-run-score" class="gold">0</strong>
             </div>
             <div class="receipt-row">
-              <span>HIGH SCORE</span>
+              <span>歴代ハイスコア</span>
               <strong id="end-high-score" class="cyan">0</strong>
             </div>
             <div class="receipt-row">
-              <span>MAX STAGE MULT</span>
+              <span>最大ステージ倍率</span>
               <strong id="end-max-mult">x1</strong>
             </div>
             <div class="receipt-row">
-              <span>BEST SINGLE SHOT</span>
+              <span>一撃ベストスコア</span>
               <strong id="end-best-shot">0</strong>
             </div>
             <div class="receipt-row">
-              <span>TOTAL BINGOS / FULL CARDS</span>
+              <span>総ビンゴ / 全開放</span>
               <strong id="end-bingos">0 / 0</strong>
             </div>
           </div>
 
           <div class="end-relics-preview">
-            <div class="erp-label">FINAL RELIC BUILD</div>
+            <div class="erp-label">最終レリック構成</div>
             <div id="end-relics-list" class="erp-icons"></div>
           </div>
 
           <div class="end-actions-stack">
             <button id="btn-continue-endless" class="cta-primary-btn full end-victory-cta is-hidden" type="button">
               <span class="cta-icon" data-icon="bolt"></span>
-              <span class="cta-text">ENDLESS MODE へ突入</span>
+              <span class="cta-text">エンドレスモードへ突入</span>
             </button>
             <button id="btn-retry-run" class="cta-primary-btn full" type="button">
               <span class="cta-icon" data-icon="play"></span>
@@ -634,7 +700,7 @@
       <div id="sound-mixer-popover" class="sound-mixer-overlay is-hidden" role="dialog" aria-label="音量設定">
         <div class="sound-mixer-card">
           <div class="smc-header">
-            <span class="smc-title">SOUND MIXER // 音量設定</span>
+            <span class="smc-title">音量設定（BGM・効果音）</span>
             <button id="btn-close-sound-mixer" class="mrp-close" type="button">閉じる</button>
           </div>
 

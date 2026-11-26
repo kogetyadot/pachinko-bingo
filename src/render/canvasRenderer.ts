@@ -574,9 +574,9 @@ export class CanvasRenderer {
           const feverSub =
             ev.value !== undefined
               ? `+${formatScore(ev.value)}${ev.subtext ? ` // ${ev.subtext}` : ''}`
-              : (ev.subtext ?? 'JACKPOT RUSH!');
+              : (ev.subtext ?? '全開放ボーナス！');
           this.enqueueCutIn({
-            title: '大当たり!! FULL BINGO FEVER!!',
+            title: '大当たり!! FEVER!!',
             subtitle: feverSub,
             theme: 'FEVER',
             duration: 1.25,
@@ -584,7 +584,7 @@ export class CanvasRenderer {
           this.spawnPopup(
             centerX,
             640,
-            'FULL BINGO!!',
+            '全開放!!',
             ev.value !== undefined ? `+${formatScore(ev.value)}` : '',
             '#ffd000',
             1.42,
@@ -640,13 +640,13 @@ export class CanvasRenderer {
       const n = Math.max(frameBingoCount, frameBingoMaxCombo);
       const title =
         n >= 4
-          ? `${n}x MEGA BINGO!!`
+          ? `${n}連メガビンゴ!!`
           : n === 3
-            ? 'TRIPLE BINGO!!'
+            ? 'トリプルビンゴ!!'
             : n === 2
-              ? 'DOUBLE BINGO!!'
-              : 'BINGO!!';
-      const subtitle = frameBingoTotalScore > 0 ? `+${formatScore(frameBingoTotalScore)}` : 'LINE CLEAR!';
+              ? 'Wビンゴ!!'
+              : 'ビンゴ!!';
+      const subtitle = frameBingoTotalScore > 0 ? `+${formatScore(frameBingoTotalScore)}` : 'ライン成立！';
       this.enqueueCutIn({
         title,
         subtitle,
@@ -1404,28 +1404,28 @@ export class CanvasRenderer {
 
       // Zone top header pill anchored cleanly in upper dome headroom above Row 0 pins (y=126)
       const cx = z.x + z.w / 2;
-      const pillW = Math.min(z.w - 10, 144);
-      const pillH = isPreferred ? 34 : 21;
+      const pillW = Math.min(z.w - 6, 152);
+      const pillH = isPreferred ? 38 : 25;
       const pillX = cx - pillW / 2;
-      const pillY = isPreferred ? 70 : 80;
+      const pillY = isPreferred ? 66 : 76;
 
-      ctx.fillStyle = isPreferred ? 'rgba(66, 32, 6, 0.94)' : 'rgba(10, 14, 24, 0.88)';
+      ctx.fillStyle = isPreferred ? 'rgba(66, 32, 6, 0.96)' : 'rgba(10, 14, 24, 0.9)';
       this.roundedRectPath(ctx, pillX, pillY, pillW, pillH, 6);
       ctx.fill();
-      ctx.strokeStyle = isPreferred ? '#fde047' : 'rgba(148, 163, 184, 0.45)';
-      ctx.lineWidth = isPreferred ? 1.8 : 1.1;
+      ctx.strokeStyle = isPreferred ? '#fde047' : 'rgba(148, 163, 184, 0.5)';
+      ctx.lineWidth = isPreferred ? 1.9 : 1.2;
       ctx.stroke();
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = isPreferred ? '#fffbeb' : '#cbd5e1';
-      ctx.font = '800 10.5px "Chakra Petch", "M PLUS 1p", sans-serif';
-      ctx.fillText(z.label, cx, isPreferred ? pillY + 11 : pillY + 10.5);
+      ctx.fillStyle = isPreferred ? '#fffbeb' : '#e2e8f0';
+      ctx.font = '800 12.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+      ctx.fillText(z.label, cx, isPreferred ? pillY + 12 : pillY + 13);
 
       if (isPreferred) {
         ctx.fillStyle = '#fde047';
-        ctx.font = '800 9.5px "M PLUS 1p", "Chakra Petch", sans-serif';
-        ctx.fillText('★次ステージ有利ルート!', cx, pillY + 25);
+        ctx.font = '800 11px "M PLUS 1p", "Chakra Petch", sans-serif';
+        ctx.fillText('★次ステージ有利!', cx, pillY + 28);
       }
     }
     ctx.restore();
@@ -1474,9 +1474,9 @@ export class CanvasRenderer {
 
     // Power percentage indicator at bottom of chute
     ctx.fillStyle = '#fde68a';
-    ctx.font = '800 10px "Chakra Petch", sans-serif';
+    ctx.font = '800 12.5px "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${Math.round(state.launchPower * 100)}%`, WORLD.RAIL_X_CENTER, 546);
+    ctx.fillText(`${Math.round(state.launchPower * 100)}%`, WORLD.RAIL_X_CENTER, 548);
   }
 
   private getStrokeLabel(power: number): { text: string; color: string } {
@@ -1564,32 +1564,32 @@ export class CanvasRenderer {
     ctx.lineTo(rx, ry + 14);
     ctx.stroke();
 
-    const labelText = isReachAim ? `${stroke.text} [REACH]` : stroke.text;
-    ctx.font = '700 11px "Chakra Petch", "M PLUS 1p", sans-serif';
+    const labelText = isReachAim ? `${stroke.text} [リーチ]` : stroke.text;
+    ctx.font = '800 13px "M PLUS 1p", "Chakra Petch", sans-serif';
     let w = this.labelWidthCache.get(labelText);
     if (w === undefined) {
-      w = Math.ceil(ctx.measureText(labelText).width + 14);
+      w = Math.ceil(ctx.measureText(labelText).width + 16);
       this.labelWidthCache.set(labelText, w);
     }
     const bx = Math.max(WORLD.BOARD_LEFT + 6, Math.min(WORLD.BOARD_RIGHT - w - 6, rx - w / 2));
     const chainHudVisible =
       state.phase === 'PLAYING' && (state.chainCount ?? 0) > 0 && (state.chainTotalScore ?? 0) > 0;
-    let by = Math.max(28, ry - 30);
-    if (chainHudVisible && by < 88 && by + 20 > 44) {
+    let by = Math.max(28, ry - 32);
+    if (chainHudVisible && by < 88 && by + 23 > 44) {
       by = ry + 16;
     }
 
-    ctx.fillStyle = 'rgba(20, 12, 16, 0.92)';
-    this.roundedRectPath(ctx, bx, by, w, 20, 5);
+    ctx.fillStyle = 'rgba(20, 12, 16, 0.94)';
+    this.roundedRectPath(ctx, bx, by, w, 23, 6);
     ctx.fill();
     ctx.strokeStyle = guideColor;
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.fillStyle = guideColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(labelText, bx + w / 2, by + 10.5);
+    ctx.fillText(labelText, bx + w / 2, by + 12);
     ctx.restore();
   }
 
@@ -2064,19 +2064,19 @@ export class CanvasRenderer {
       ctx.stroke();
 
       // Compact '狙い列' top spotlight badge (positioned cleanly if REACH arrow is also present)
-      const badgeW = 46;
-      const badgeH = 14;
-      const badgeY = p.isReachTarget && !p.overdrive ? top - 34 : top - 16;
-      ctx.globalAlpha = 0.94;
-      ctx.fillStyle = 'rgba(42, 22, 4, 0.94)';
+      const badgeW = 54;
+      const badgeH = 17;
+      const badgeY = p.isReachTarget && !p.overdrive ? top - 38 : top - 19;
+      ctx.globalAlpha = 0.96;
+      ctx.fillStyle = 'rgba(42, 22, 4, 0.96)';
       this.roundedRectPath(ctx, p.xCenter - badgeW / 2, badgeY, badgeW, badgeH, 4);
       ctx.fill();
       ctx.strokeStyle = '#fde047';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.3;
       ctx.stroke();
 
       ctx.fillStyle = '#fde047';
-      ctx.font = '800 8.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+      ctx.font = '800 10.5px "M PLUS 1p", "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('狙い列', p.xCenter, badgeY + badgeH / 2 + 0.5);
@@ -2092,18 +2092,18 @@ export class CanvasRenderer {
     }
 
     ctx.fillStyle = p.overdrive ? '#ecfdf5' : '#fffbeb';
-    ctx.font = '900 20px Orbitron, "Chakra Petch", sans-serif';
+    ctx.font = '900 23px Orbitron, "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(p.label, p.xCenter, top + 27);
+    ctx.fillText(p.label, p.xCenter, top + 25);
 
     if (p.overdrive) {
       const flash = 0.78 + 0.22 * Math.sin(simTime * 12);
       ctx.save();
       ctx.globalAlpha = flash;
       ctx.fillStyle = '#6ee7b7';
-      ctx.font = '800 8.5px "Chakra Petch", sans-serif';
-      ctx.fillText(`OVERDRIVE LV.${Math.max(1, p.overdriveLevel)}`, p.xCenter, top + 47);
+      ctx.font = '800 10.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+      ctx.fillText(`列覚醒 Lv.${Math.max(1, p.overdriveLevel)}`, p.xCenter, top + 47);
       ctx.restore();
 
       ctx.strokeStyle = '#34d399';
@@ -2120,8 +2120,8 @@ export class CanvasRenderer {
     } else if (p.isReachTarget) {
       const bob = Math.sin(simTime * 8) * 3.5;
       ctx.fillStyle = '#fde047';
-      ctx.font = '800 10px "Chakra Petch", sans-serif';
-      ctx.fillText('REACH!', p.xCenter, top - 16 + bob);
+      ctx.font = '800 12px "M PLUS 1p", "Chakra Petch", sans-serif';
+      ctx.fillText('リーチ!', p.xCenter, top - 17 + bob);
 
       ctx.strokeStyle = '#fde047';
       ctx.lineWidth = 2.4;
@@ -2131,8 +2131,8 @@ export class CanvasRenderer {
       ctx.lineTo(p.xCenter + 7, top - 9 + bob);
       ctx.stroke();
     } else {
-      ctx.fillStyle = isAimTarget ? '#fde047' : 'rgba(245, 185, 66, 0.72)';
-      ctx.font = '700 8.5px "Chakra Petch", sans-serif';
+      ctx.fillStyle = isAimTarget ? '#fde047' : 'rgba(245, 185, 66, 0.85)';
+      ctx.font = '800 10.5px "M PLUS 1p", "Chakra Petch", sans-serif';
       ctx.fillText(`入賞口 ${p.col + 1}`, p.xCenter, top + 47);
     }
   }
@@ -2273,11 +2273,12 @@ export class CanvasRenderer {
     ctx.stroke();
 
     const cx = x + w / 2;
-    const cy = y + h / 2 - (cell.reigniteCount > 0 ? 4 : 0);
+    const hasSubLabel = cell.reigniteCount > 0 || (cell.inReachLine && !cell.opened);
+    const cy = y + h / 2 - (hasSubLabel ? 5 : 0);
 
     if (cell.isFree) {
       ctx.fillStyle = '#fde047';
-      ctx.font = '800 14px "Chakra Petch", sans-serif';
+      ctx.font = '800 16px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('FREE', cx, cy);
@@ -2288,8 +2289,8 @@ export class CanvasRenderer {
           ? '#fffbeb'
           : cell.inReachLine
             ? '#fde68a'
-            : '#e2e8f0';
-      ctx.font = '700 20px "Chakra Petch", sans-serif';
+            : '#f1f5f9';
+      ctx.font = '800 24px "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(cell.number), cx, cy);
@@ -2297,16 +2298,16 @@ export class CanvasRenderer {
 
     if (cell.reigniteCount > 0) {
       ctx.fillStyle = '#fde047';
-      ctx.font = '800 9px "Chakra Petch", sans-serif';
+      ctx.font = '800 10.5px "Chakra Petch", "M PLUS 1p", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`+RE x${cell.reigniteCount}`, cx, y + h - 10);
+      ctx.fillText(`再点火×${cell.reigniteCount}`, cx, y + h - 10);
     } else if (cell.inReachLine && !cell.opened) {
       ctx.fillStyle = '#fda4af';
-      ctx.font = '800 8.5px "Chakra Petch", sans-serif';
+      ctx.font = '800 10.5px "M PLUS 1p", "Chakra Petch", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('REACH', cx, y + h - 9);
+      ctx.fillText('リーチ', cx, y + h - 10);
     }
 
     ctx.restore();
@@ -2623,7 +2624,7 @@ export class CanvasRenderer {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Left badge: CHAIN xN
+    // Left badge: N連鎖!
     const badgeW = 92;
     const badgeX = -pillW / 2 + 6;
     ctx.fillStyle = badgeBg;
@@ -2634,22 +2635,22 @@ export class CanvasRenderer {
     ctx.stroke();
 
     ctx.fillStyle = badgeText;
-    ctx.font = '900 11.5px Orbitron, "Chakra Petch", sans-serif';
+    ctx.font = '900 13px "M PLUS 1p", Orbitron, "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`CHAIN x${chain}`, badgeX + badgeW / 2, -1);
+    ctx.fillText(`${chain}連鎖!`, badgeX + badgeW / 2, -0.5);
 
     // Center formula: 基礎 chips × mult (strip formatMult's leading 'x')
     const formulaText = `基礎 ${formatScore(chips)} × ${formatMult(mult).replace(/^x/i, '')}`;
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '700 11px "Chakra Petch", "M PLUS 1p", sans-serif';
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '800 12.5px "M PLUS 1p", "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(formulaText, -8, -1);
+    ctx.fillText(formulaText, -8, -0.5);
 
     // Right giant gleaming total: +score
     const totalStr = `+${formatScore(total)}`;
     ctx.fillStyle = totalColor;
-    ctx.font = '900 17px Orbitron, "Chakra Petch", "M PLUS 1p", sans-serif';
+    ctx.font = '900 18.5px Orbitron, "Chakra Petch", "M PLUS 1p", sans-serif';
     ctx.textAlign = 'right';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#070a12';
@@ -2686,11 +2687,11 @@ export class CanvasRenderer {
     const def = PIN_CATALOG[pin.kind];
 
     ctx.save();
-    ctx.font = '700 11.5px "M PLUS 1p", "Chakra Petch", sans-serif';
+    ctx.font = '800 13px "M PLUS 1p", "Chakra Petch", sans-serif';
     const textW = Math.ceil(ctx.measureText(text).width);
     const padX = 12;
     const boxW = Math.min(WORLD.BOARD_WIDTH - 14, textW + padX * 2 + 12);
-    const boxH = 26;
+    const boxH = 29;
 
     const bx = Math.max(
       WORLD.BOARD_LEFT + 6,
