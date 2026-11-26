@@ -4014,6 +4014,58 @@ input {
   }
 }
 
+/* 5. Board-Tune Banner: strictly fixed height + 1-line hint so picking up a pin NEVER resizes the canvas */
+.board-tune-banner {
+  height: 54px;
+  overflow: hidden;
+}
+
+.btb-hint {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 959px) {
+  .board-tune-banner {
+    height: 68px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .btb-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .btb-badge {
+    flex-shrink: 0;
+  }
+
+  .btb-hint {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btb-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .btb-actions .mini-neon-btn {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+
+
 
 
 

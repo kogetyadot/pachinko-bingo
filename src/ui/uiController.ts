@@ -1199,7 +1199,7 @@ export class UIController {
     if (pendingCount === 0) {
       invEl.innerHTML =
         '<div class="pin-empty-note">未配置の特殊釘はありません（装着済みの釘をタップすると回収・付け替えできます）</div>';
-      this.q('btb-hint').textContent = '装着済みの特殊釘をタップで回収＆付け替え可能';
+      this.q('btb-hint').textContent = '装着済みの釘をタップで回収・移動';
     } else {
       const counts = new Map<PinKind, number>();
       for (const pk of state.pendingPinInventory) {
@@ -1227,7 +1227,7 @@ export class UIController {
       });
 
       const activeKind = state.selectedPinBrush ?? state.pendingPinInventory[0];
-      this.q('btb-hint').textContent = `選択中: ${PIN_CATALOG[activeKind].name} (残り${pendingCount}個) — 盤面の緑枠をタップ`;
+      this.q('btb-hint').textContent = `選択中：${PIN_CATALOG[activeKind].name} (残${pendingCount}) — 緑枠をタップ`;
     }
   }
 
